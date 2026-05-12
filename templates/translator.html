@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Language Translator — Travella</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="spinner-overlay"><div class="spinner"></div></div>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg fixed-top scrolled">
+  <div class="container">
+    <a class="navbar-brand" href="/">Travel<span>la</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/tourist-places">Destinations</a></li>
+        <li class="nav-item"><a class="nav-link" href="/travel-planner">🗓️ Planner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/hotels">Hotels</a></li>
+        <li class="nav-item"><a class="nav-link" href="/restaurants">Restaurants</a></li>
+        <li class="nav-item"><a class="nav-link" href="/routes">Navigate</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/translator">Translator</a></li>
+        <li class="nav-item"><a class="nav-link" href="/vehicle-booking">Vehicles</a></li>
+        <li class="nav-item ms-2"><a class="nav-link nav-cta" href="/emergency">🆘 Emergency</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HERO -->
+<section class="page-hero">
+  <div class="container" style="position:relative;z-index:1">
+    <div class="breadcrumb-custom"><a href="/">Home</a><span>/</span><span>Translator</span></div>
+    <span class="section-eyebrow">🌐 Break Language Barriers</span>
+    <h1>Speak the <em style="font-style:italic;color:var(--amber)">Local Language</em></h1>
+    <p class="mt-2" style="max-width:500px">Translate between English, Hindi, Tamil, French, Spanish, Japanese, Arabic, German and many more languages — instantly.</p>
+  </div>
+</section>
+
+<!-- TRANSLATOR -->
+<section style="padding:4rem 0;background:var(--ivory)">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+
+        <!-- Main Translator Card -->
+        <div style="background:var(--white);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);overflow:hidden">
+
+          <!-- Header -->
+          <div style="background:linear-gradient(135deg,var(--teal-dark),var(--teal));padding:1.5rem 2rem;display:flex;align-items:center;gap:1rem">
+            <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem">🌐</div>
+            <div>
+              <h4 style="color:var(--white);font-family:var(--font-display);margin:0;font-size:1.3rem">Language Translator</h4>
+              <p style="color:rgba(255,255,255,0.65);margin:0;font-size:0.82rem">Powered by MyMemory Translation API</p>
+            </div>
+          </div>
+
+          <div style="padding:2rem">
+
+            <!-- Language Selector Row -->
+            <div class="row g-3 mb-4 align-items-end">
+              <div class="col-5">
+                <label class="form-label-custom">From Language</label>
+                <select id="sourceLang" class="lang-select">
+                  <option value="en">🇬🇧 English</option>
+                  <option value="hi">🇮🇳 Hindi</option>
+                  <option value="ta">🇮🇳 Tamil</option>
+                  <option value="te">🇮🇳 Telugu</option>
+                  <option value="kn">🇮🇳 Kannada</option>
+                  <option value="ml">🇮🇳 Malayalam</option>
+                  <option value="bn">🇮🇳 Bengali</option>
+                  <option value="mr">🇮🇳 Marathi</option>
+                  <option value="fr">🇫🇷 French</option>
+                  <option value="es">🇪🇸 Spanish</option>
+                  <option value="de">🇩🇪 German</option>
+                  <option value="ja">🇯🇵 Japanese</option>
+                  <option value="ar">🇸🇦 Arabic</option>
+                  <option value="zh">🇨🇳 Chinese</option>
+                  <option value="ko">🇰🇷 Korean</option>
+                  <option value="ru">🇷🇺 Russian</option>
+                  <option value="pt">🇵🇹 Portuguese</option>
+                  <option value="it">🇮🇹 Italian</option>
+                </select>
+              </div>
+              <div class="col-2 text-center" style="padding-bottom:0.5rem">
+                <button onclick="swapLangs()" title="Swap languages"
+                  style="background:var(--ivory);border:2px solid rgba(13,79,92,0.15);border-radius:50%;width:42px;height:42px;cursor:pointer;font-size:1.2rem;transition:var(--transition);display:inline-flex;align-items:center;justify-content:center"
+                  onmouseover="this.style.background='var(--teal)';this.style.color='white'"
+                  onmouseout="this.style.background='var(--ivory)';this.style.color='inherit'">⇌</button>
+              </div>
+              <div class="col-5">
+                <label class="form-label-custom">To Language</label>
+                <select id="targetLang" class="lang-select">
+                  <option value="hi">🇮🇳 Hindi</option>
+                  <option value="ta">🇮🇳 Tamil</option>
+                  <option value="te">🇮🇳 Telugu</option>
+                  <option value="kn">🇮🇳 Kannada</option>
+                  <option value="ml">🇮🇳 Malayalam</option>
+                  <option value="bn">🇮🇳 Bengali</option>
+                  <option value="mr">🇮🇳 Marathi</option>
+                  <option value="fr">🇫🇷 French</option>
+                  <option value="es">🇪🇸 Spanish</option>
+                  <option value="de">🇩🇪 German</option>
+                  <option value="ja">🇯🇵 Japanese</option>
+                  <option value="ar">🇸🇦 Arabic</option>
+                  <option value="zh">🇨🇳 Chinese</option>
+                  <option value="ko">🇰🇷 Korean</option>
+                  <option value="ru">🇷🇺 Russian</option>
+                  <option value="pt">🇵🇹 Portuguese</option>
+                  <option value="it">🇮🇹 Italian</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Source Text -->
+            <div class="mb-3">
+              <div class="translator-box">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;padding-bottom:0.8rem;border-bottom:1px solid var(--ivory-dark)">
+                  <span style="font-size:0.78rem;font-weight:700;color:var(--text-mid);letter-spacing:1px;text-transform:uppercase" id="sourceLabel">Source Text</span>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <span id="inputCharCount" style="font-size:0.75rem;color:var(--text-light)">0 chars</span>
+                    <button onclick="document.getElementById('sourceText').value='';updateCharCount()" style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:0.82rem">Clear ✕</button>
+                  </div>
+                </div>
+                <textarea id="sourceText" oninput="updateCharCount()" placeholder="Type or paste ANY text here — sentences, paragraphs, stories, anything...
+
+Examples:
+• Where is the nearest hospital?
+• How much does this cost?
+• I need help, please call police.
+• Paste full paragraphs — no word limit!" rows="7"></textarea>
+              </div>
+            </div>
+
+            <!-- Translate Button -->
+            <button id="translateBtn" class="btn-primary-custom w-100 mb-3" style="justify-content:center;font-size:1rem">
+              <span>🌐</span> Translate
+            </button>
+
+            <!-- Keyboard shortcut hint -->
+            <p style="font-size:0.75rem;color:var(--text-light);text-align:center;margin-bottom:1rem">
+              Press <kbd style="background:var(--ivory-dark);border:1px solid rgba(13,79,92,0.15);border-radius:4px;padding:1px 6px;font-size:0.75rem">Ctrl</kbd> +
+              <kbd style="background:var(--ivory-dark);border:1px solid rgba(13,79,92,0.15);border-radius:4px;padding:1px 6px;font-size:0.75rem">Enter</kbd> to translate instantly
+            </p>
+
+            <!-- Loading -->
+            <div id="translateLoading" style="display:none;padding:1rem;background:var(--ivory);border-radius:12px;margin-bottom:1rem">
+              <div class="d-flex align-items-center gap-2">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <span style="color:var(--text-mid);font-size:0.9rem">Translating...</span>
+              </div>
+            </div>
+
+            <!-- Output -->
+            <div id="translationOutput" style="display:none">
+              <div class="translator-box" style="border-color:var(--teal)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;padding-bottom:0.8rem;border-bottom:1px solid var(--ivory-dark)">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:0.78rem;font-weight:700;color:var(--teal);letter-spacing:1px;text-transform:uppercase">Translation</span>
+                    <span id="charCount" style="font-size:0.72rem;color:var(--text-light)"></span>
+                  </div>
+                  <div style="display:flex;gap:6px">
+                    <button id="speakBtn" onclick="speakTranslation()" style="background:var(--ivory);border:1px solid rgba(13,79,92,0.15);color:var(--text-mid);cursor:pointer;font-size:0.8rem;padding:0.25rem 0.75rem;border-radius:20px;transition:var(--transition)" title="Listen to translation">🔊 Listen</button>
+                    <button id="copyTranslation" style="background:var(--ivory);border:1px solid rgba(13,79,92,0.15);color:var(--text-mid);cursor:pointer;font-size:0.8rem;padding:0.25rem 0.75rem;border-radius:20px;transition:var(--transition)">📋 Copy</button>
+                  </div>
+                </div>
+                <p id="outputText" style="font-size:1.05rem;line-height:1.8;color:var(--text-dark);margin:0;font-weight:400;white-space:pre-wrap"></p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Phrase Cards -->
+        <div class="mt-5">
+          <h5 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:1.5rem">💬 Essential Travel Phrases</h5>
+          <div class="row g-3">
+            {% set phrases = [
+              ('Where is the toilet?', '🚽'),
+              ('How much does this cost?', '💰'),
+              ('I need a doctor.', '🏥'),
+              ('Please call the police.', '🚔'),
+              ('I am lost.', '🗺️'),
+              ('Can you help me?', '🙏'),
+              ('What time is it?', '⏰'),
+              ('Where is the nearest hotel?', '🏨'),
+              ('I am allergic to nuts.', '⚠️'),
+              ('Thank you very much!', '😊'),
+              ('Do you speak English?', '🗣️'),
+              ('Please slow down.', '🐢'),
+            ] %}
+            {% for phrase, icon in phrases %}
+            <div class="col-md-6 col-lg-4">
+              <div style="background:var(--white);border-radius:var(--radius-md);padding:0.9rem 1.1rem;border:1px solid rgba(13,79,92,0.1);cursor:pointer;transition:var(--transition);display:flex;align-items:center;gap:0.7rem"
+                onclick="document.getElementById('sourceText').value='{{ phrase }}';document.getElementById('sourceText').focus()"
+                onmouseenter="this.style.borderColor='var(--teal)';this.style.transform='translateY(-2px)'"
+                onmouseleave="this.style.borderColor='rgba(13,79,92,0.1)';this.style.transform='translateY(0)'">
+                <span style="font-size:1.3rem">{{ icon }}</span>
+                <span style="font-size:0.86rem;color:var(--text-dark);font-weight:500">{{ phrase }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Languages Info -->
+        <div class="mt-5 p-4" style="background:var(--charcoal);border-radius:var(--radius-lg)">
+          <h6 style="color:var(--amber);font-family:var(--font-display);font-size:1.1rem;margin-bottom:1rem">🌍 India's Linguistic Diversity</h6>
+          <p style="color:rgba(255,255,255,0.65);font-size:0.88rem;margin:0">India has 22 official languages and over 1,600 dialects. Hindi is widely spoken in the north, Tamil in Tamil Nadu, Bengali in West Bengal, Kannada in Karnataka, and Malayalam in Kerala. English is the lingua franca in urban areas and among educated populations.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4"><div class="footer-brand">Travel<span>la</span></div><p class="footer-desc">Break language barriers on your Indian journey.</p></div>
+      <div class="col-sm-4 col-lg-2"><h6>Explore</h6><ul><li><a href="/tourist-places">Destinations</a></li><li><a href="/hotels">Hotels</a></li></ul></div>
+      <div class="col-sm-4 col-lg-2"><h6>Services</h6><ul><li><a href="/routes">Navigation</a></li><li><a href="/vehicle-booking">Vehicles</a></li></ul></div>
+      <div class="col-sm-4 col-lg-4"><h6>Emergency</h6><ul><li><a href="tel:100">🚔 Police — 100</a></li><li><a href="tel:108">🚑 Ambulance — 108</a></li></ul></div>
+    </div>
+    <hr class="footer-divider">
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);text-align:center;margin:0">© 2024 Travella. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+// ── SWAP LANGUAGES ──────────────────────────
+function swapLangs() {
+  const src = document.getElementById('sourceLang');
+  const tgt = document.getElementById('targetLang');
+  const tmp = src.value;
+  src.value = tgt.value;
+  tgt.value = tmp;
+
+  // Also swap text if translation exists
+  const srcText = document.getElementById('sourceText').value;
+  const outText = document.getElementById('outputText').textContent;
+  if (outText && outText.trim()) {
+    document.getElementById('sourceText').value = outText;
+    document.getElementById('outputText').textContent = srcText;
+    updateCharCount();
+  }
+}
+
+// ── CHAR COUNT ───────────────────────────────
+function updateCharCount() {
+  const txt = document.getElementById('sourceText').value;
+  const el  = document.getElementById('inputCharCount');
+  if (el) el.textContent = txt.length + ' chars';
+}
+
+// ── SPEAK TRANSLATION ────────────────────────
+function speakTranslation() {
+  const text = document.getElementById('outputText').textContent;
+  const lang = document.getElementById('targetLang').value;
+  if (!text || !text.trim()) return;
+
+  if (!window.speechSynthesis) {
+    alert('Text-to-speech is not supported in your browser.');
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang;
+  utt.rate = 0.9;
+
+  const btn = document.getElementById('speakBtn');
+  btn.textContent = '🔊 Speaking...';
+  btn.style.color = 'var(--teal)';
+
+  utt.onend = () => { btn.textContent = '🔊 Listen'; btn.style.color = ''; };
+  utt.onerror = () => { btn.textContent = '🔊 Listen'; btn.style.color = ''; };
+
+  window.speechSynthesis.speak(utt);
+}
+
+// ── CTRL+ENTER SHORTCUT ───────────────────────
+document.getElementById('sourceText').addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 'Enter') {
+    e.preventDefault();
+    runTranslation();
+  }
+});
+
+// ── INIT CHAR COUNT ──────────────────────────
+updateCharCount();
+</script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurants — Travella</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="spinner-overlay"><div class="spinner"></div></div>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg fixed-top scrolled">
+  <div class="container">
+    <a class="navbar-brand" href="/">Travel<span>la</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/tourist-places">Destinations</a></li>
+        <li class="nav-item"><a class="nav-link" href="/travel-planner">🗓️ Planner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/hotels">Hotels</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/restaurants">Restaurants</a></li>
+        <li class="nav-item"><a class="nav-link" href="/routes">Navigate</a></li>
+        <li class="nav-item"><a class="nav-link" href="/translator">Translator</a></li>
+        <li class="nav-item"><a class="nav-link" href="/vehicle-booking">Vehicles</a></li>
+        <li class="nav-item ms-2"><a class="nav-link nav-cta" href="/emergency">Emergency</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HERO -->
+<section class="page-hero">
+  <div class="container" style="position:relative;z-index:1">
+    <div class="breadcrumb-custom"><a href="/">Home</a><span>/</span><span>Restaurants</span></div>
+    <span class="section-eyebrow">Curated Dining</span>
+    <h1>Savour <em style="font-style:italic;color:var(--amber)">India's Flavours</em></h1>
+    <p class="mt-2" style="max-width:500px">From royal Mughlai feasts to coastal seafood — discover the finest dining across India.</p>
+  </div>
+</section>
+
+<!-- FILTER BAR -->
+<div style="background:var(--white);padding:1.2rem 0;box-shadow:0 2px 20px rgba(13,79,92,0.08);position:sticky;top:72px;z-index:100">
+  <div class="container">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <span style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin-right:4px">Filter by Cuisine:</span>
+      <button class="filter-btn active" onclick="filterCuisine(this, '')" data-cuisine="">
+        All <span class="count-badge" id="count-all"></span>
+      </button>
+      {% for c in cuisines %}
+      <button class="filter-btn" onclick="filterCuisine(this, '{{ c.cuisine }}')" data-cuisine="{{ c.cuisine }}">
+        {{ c.cuisine }} <span class="count-badge" id="count-{{ c.cuisine | replace(' ','-') | lower }}"></span>
+      </button>
+      {% endfor %}
+    </div>
+    <!-- Result count -->
+    <p style="font-size:0.8rem;color:var(--text-light);margin:8px 0 0" id="resultCount"></p>
+  </div>
+</div>
+
+<style>
+.count-badge {
+  display:inline-block;
+  background:rgba(13,79,92,0.12);
+  color:var(--teal);
+  font-size:0.68rem;
+  font-weight:700;
+  padding:1px 6px;
+  border-radius:10px;
+  margin-left:3px;
+  min-width:18px;
+  text-align:center;
+}
+.filter-btn.active .count-badge {
+  background:rgba(255,255,255,0.25);
+  color:white;
+}
+.no-results {
+  text-align:center;
+  padding:4rem 2rem;
+  color:var(--text-mid);
+  display:none;
+}
+</style>
+
+<!-- RESTAURANTS GRID -->
+<section style="padding:3rem 0;background:var(--ivory)">
+  <div class="container">
+
+    <!-- No results message -->
+    <div class="no-results" id="noResults">
+      <div style="font-size:3rem;margin-bottom:1rem">🍽️</div>
+      <h5 style="font-family:var(--font-display)">No restaurants found</h5>
+      <p>Try selecting a different cuisine filter.</p>
+      <button class="filter-btn" onclick="filterCuisine(document.querySelector('[data-cuisine=\"\"]'), '')">Show All Restaurants</button>
+    </div>
+
+    <div class="row g-4" id="restaurantsGrid">
+      {% for r in restaurants %}
+      <div class="col-md-6 col-lg-4 rest-col reveal" data-cuisine="{{ r.cuisine }}">
+        <div class="restaurant-card h-100">
+          <div class="card-img-wrap">
+            <img src="{{ r.image_url }}" alt="{{ r.name }}" loading="lazy"
+              onerror="this.src='https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600'">
+            <!-- Cuisine badge on image -->
+            <span class="card-img-overlay-badge" style="background:rgba(13,79,92,0.88)">{{ r.cuisine }}</span>
+            <!-- Rating badge -->
+            <span style="position:absolute;top:1rem;right:1rem;background:rgba(242,169,59,0.95);color:#1A1A2E;font-size:0.75rem;font-weight:700;padding:3px 8px;border-radius:20px;backdrop-filter:blur(4px)">
+              ★ {{ r.rating }}
+            </span>
+          </div>
+          <div class="card-body-custom d-flex flex-column" style="flex:1">
+            <!-- Name + Price -->
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <h5 style="max-width:72%;font-size:1rem;line-height:1.3">{{ r.name }}</h5>
+              <span style="background:rgba(242,169,59,0.12);border:1px solid rgba(242,169,59,0.3);color:var(--amber-dark);font-size:0.78rem;font-weight:700;padding:3px 8px;border-radius:12px;white-space:nowrap">
+                {{ r.price_range }}
+              </span>
+            </div>
+
+            <!-- Location -->
+            <p class="card-location" style="margin-bottom:0.6rem">📍 {{ r.location }}</p>
+
+            <!-- Stars + Cuisine badge -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                {% for i in range(r.rating | int) %}
+                <span style="color:#F2A93B;font-size:0.85rem">★</span>
+                {% endfor %}
+                {% if r.rating % 1 >= 0.5 %}
+                <span style="color:#F2A93B;font-size:0.85rem">½</span>
+                {% endif %}
+                <span style="font-size:0.78rem;color:var(--text-mid);margin-left:4px">{{ r.rating }}/5</span>
+              </div>
+              <span style="background:linear-gradient(135deg,var(--teal),var(--teal-light));color:white;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:20px">
+                {{ r.cuisine }}
+              </span>
+            </div>
+
+            <!-- Price range description -->
+            <div style="background:var(--ivory);border-radius:8px;padding:6px 10px;margin-bottom:0.8rem;font-size:0.78rem;color:var(--text-mid)">
+              {% if r.price_range == 'Budget' or r.price_range == 'R' %}
+              💰 Budget friendly — under ₹300 per person
+              {% elif r.price_range == 'Mid Range' or r.price_range == 'RR' %}
+              💰💰 Mid range — ₹300–800 per person
+              {% elif r.price_range == 'Fine Dining' or r.price_range == 'RRR' %}
+              💰💰💰 Fine dining — ₹800–2000 per person
+              {% elif r.price_range == 'Premium' or r.price_range == 'RRRR' %}
+              💰💰💰💰 Premium — ₹2000+ per person
+              {% else %}
+              💰 {{ r.price_range }}
+              {% endif %}
+            </div>
+
+            <!-- Action buttons -->
+            <div class="d-flex gap-2 mt-auto">
+              <a href="/routes?to={{ r.location | urlencode }}" class="btn-teal" style="font-size:0.78rem;padding:0.45rem 0.9rem;flex:1;text-align:center">
+                🗺️ Directions
+              </a>
+              <a href="https://www.google.com/maps/search/{{ r.name | urlencode }}+{{ r.location | urlencode }}"
+                target="_blank"
+                style="background:white;border:1.5px solid rgba(13,79,92,0.2);color:var(--teal);font-size:0.78rem;font-weight:600;padding:0.45rem 0.9rem;border-radius:30px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:var(--transition)"
+                onmouseover="this.style.background='var(--teal)';this.style.color='white'"
+                onmouseout="this.style.background='white';this.style.color='var(--teal)'">
+                📌 View on Map
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- FOOD CULTURE SECTION -->
+<section style="background:var(--charcoal);padding:5rem 0">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="section-eyebrow">India's Culinary Heritage</span>
+      <h2 class="section-title light">A Journey Through <em style="color:var(--amber)">Flavours</em></h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4 reveal reveal-delay-1">
+        <div class="nearby-card text-center">
+          <div style="font-size:2.5rem;margin-bottom:0.8rem">🍛</div>
+          <h6 style="color:var(--amber);font-family:var(--font-display);font-size:1.1rem;margin-bottom:0.5rem">North Indian</h6>
+          <p style="color:rgba(255,255,255,0.55);font-size:0.86rem">Rich gravies, tandoor-cooked breads, and the legendary Mughlai biryani. Dal makhani, butter chicken, and kebabs define this royal cuisine.</p>
+        </div>
+      </div>
+      <div class="col-md-4 reveal reveal-delay-2">
+        <div class="nearby-card text-center">
+          <div style="font-size:2.5rem;margin-bottom:0.8rem">🥥</div>
+          <h6 style="color:var(--amber);font-family:var(--font-display);font-size:1.1rem;margin-bottom:0.5rem">South Indian</h6>
+          <p style="color:rgba(255,255,255,0.55);font-size:0.86rem">Crispy dosas, steamed idlis, and coconut-laden curries. Coastal flavours of Karnataka, Tamil Nadu, and Kerala.</p>
+        </div>
+      </div>
+      <div class="col-md-4 reveal reveal-delay-3">
+        <div class="nearby-card text-center">
+          <div style="font-size:2.5rem;margin-bottom:0.8rem">🦞</div>
+          <h6 style="color:var(--amber);font-family:var(--font-display);font-size:1.1rem;margin-bottom:0.5rem">Coastal Seafood</h6>
+          <p style="color:rgba(255,255,255,0.55);font-size:0.86rem">Fresh catch from the Arabian Sea and Bay of Bengal. Goan fish curries, Chettinad prawn masala, and Bengali hilsa.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4"><div class="footer-brand">Travel<span>la</span></div><p class="footer-desc">Smart travel with curated dining experiences across India.</p></div>
+      <div class="col-sm-4 col-lg-2"><h6>Explore</h6><ul><li><a href="/tourist-places">Destinations</a></li><li><a href="/hotels">Hotels</a></li><li><a href="/restaurants">Restaurants</a></li></ul></div>
+      <div class="col-sm-4 col-lg-2"><h6>Services</h6><ul><li><a href="/translator">Translator</a></li><li><a href="/vehicle-booking">Vehicles</a></li><li><a href="/emergency">Emergency</a></li></ul></div>
+      <div class="col-sm-4 col-lg-4"><h6>Emergency</h6><ul><li><a href="tel:100">Police - 100</a></li><li><a href="tel:108">Ambulance - 108</a></li></ul></div>
+    </div>
+    <hr class="footer-divider">
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);text-align:center;margin:0">2024 Travella. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+// ── CUISINE FILTER ────────────────────────────
+function filterCuisine(btn, cuisine) {
+  // Update active button
+  document.querySelectorAll('[data-cuisine]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Filter cards
+  const cols  = document.querySelectorAll('.rest-col');
+  let visible = 0;
+
+  cols.forEach(col => {
+    const match = !cuisine || col.dataset.cuisine === cuisine;
+    col.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+
+  // Update result count
+  const total = cols.length;
+  const label = cuisine ? cuisine + ' restaurants' : 'restaurants';
+  document.getElementById('resultCount').textContent =
+    'Showing ' + visible + ' of ' + total + ' ' + label;
+
+  // Show/hide no results
+  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+  document.getElementById('restaurantsGrid').style.display = visible === 0 ? 'none' : '';
+}
+
+// ── COUNT BADGES ON LOAD ─────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const cols = document.querySelectorAll('.rest-col');
+  const counts = {};
+
+  cols.forEach(col => {
+    const c = col.dataset.cuisine;
+    counts[c] = (counts[c] || 0) + 1;
+  });
+
+  // Set total count
+  const allBadge = document.getElementById('count-all');
+  if (allBadge) allBadge.textContent = cols.length;
+
+  // Set per-cuisine counts
+  Object.entries(counts).forEach(([cuisine, count]) => {
+    const id = 'count-' + cuisine.replace(/ /g, '-').toLowerCase();
+    const el = document.getElementById(id);
+    if (el) el.textContent = count;
+  });
+
+  // Set initial result count
+  document.getElementById('resultCount').textContent =
+    'Showing all ' + cols.length + ' restaurants';
+});
+</script>
+</body>
+</html>

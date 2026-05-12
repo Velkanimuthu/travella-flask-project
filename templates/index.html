@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travella — Smart Tourist Safety & Travel Assistance</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Loading Spinner -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner"></div>
+</div>
+
+<!-- Flash Messages -->
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="flash-msg {{ category }}">
+      <span>{% if category == 'success' %}✅{% else %}⚠️{% endif %}</span>
+      <p>{{ message }}</p>
+      <button class="flash-close">×</button>
+    </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="/">Travel<span>la</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+        <li class="nav-item"><a class="nav-link active" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/tourist-places">Destinations</a></li>
+        <li class="nav-item"><a class="nav-link" href="/travel-planner">🗓️ Planner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/hotels">Hotels</a></li>
+        <li class="nav-item"><a class="nav-link" href="/restaurants">Restaurants</a></li>
+        <li class="nav-item"><a class="nav-link" href="/routes">Navigate</a></li>
+        <li class="nav-item"><a class="nav-link" href="/translator">Translator</a></li>
+        <li class="nav-item"><a class="nav-link" href="/vehicle-booking">Vehicles</a></li>
+        <li class="nav-item ms-2"><a class="nav-link nav-cta" href="/emergency">🆘 Emergency</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <div class="hero-content">
+          <span class="hero-eyebrow">✦ Discover India Safely</span>
+          <h1>Travel <em>Smart,</em><br>Arrive <em>Safe</em></h1>
+          <p class="hero-sub">Your all-in-one travel companion for exploring India — with real-time safety insights, curated destinations, and 24/7 emergency support.</p>
+          <div class="hero-btns">
+            <a href="/tourist-places" class="btn-primary-custom">
+              <span>✈️</span> Explore Destinations
+            </a>
+            <a href="/emergency" class="btn-outline-custom">
+              <span>🆘</span> Emergency Help
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- SVG Wave Bottom -->
+  <div style="position:absolute;bottom:0;left:0;right:0;line-height:0">
+    <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="#F9F5EE"/>
+    </svg>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="d-flex justify-content-center align-items-center flex-wrap gap-4">
+      <div class="stat-item">
+        <span class="stat-number" data-target="500" data-suffix="+">500+</span>
+        <span class="stat-label">Destinations</span>
+      </div>
+      <div class="stat-divider d-none d-md-block" style="height:50px;width:1px;background:rgba(255,255,255,0.12)"></div>
+      <div class="stat-item">
+        <span class="stat-number" data-target="200" data-suffix="+">200+</span>
+        <span class="stat-label">Hotels Listed</span>
+      </div>
+      <div class="stat-divider d-none d-md-block" style="height:50px;width:1px;background:rgba(255,255,255,0.12)"></div>
+      <div class="stat-item">
+        <span class="stat-number" data-target="50" data-suffix="+">50+</span>
+        <span class="stat-label">Cities Covered</span>
+      </div>
+      <div class="stat-divider d-none d-md-block" style="height:50px;width:1px;background:rgba(255,255,255,0.12)"></div>
+      <div class="stat-item">
+        <span class="stat-number">24/7</span>
+        <span class="stat-label">Support</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="py-7 section-ivory" style="padding:6rem 0">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="section-eyebrow">Everything You Need</span>
+      <h2 class="section-title">Your Complete Travel <em>Toolkit</em></h2>
+      <p class="section-subtitle mx-auto mt-3">From safety scores to local cuisine — explore every feature built to make your journey seamless.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4 col-lg-4 reveal reveal-delay-1">
+        <a href="/tourist-places" class="text-decoration-none">
+          <div class="feature-card">
+            <div class="feature-icon">🏛️</div>
+            <h5>Tourist Places</h5>
+            <p>Discover 500+ curated destinations across beaches, mountains, heritage sites, and cities with insider travel tips.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-4 reveal reveal-delay-2">
+        <a href="/hotels" class="text-decoration-none">
+          <div class="feature-card">
+            <div class="feature-icon">🏨</div>
+            <h5>Safety-Rated Hotels</h5>
+            <p>Every hotel rated for safety with proximity to police stations, hospitals, and real-time crime data scores.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-4 reveal reveal-delay-3">
+        <a href="/restaurants" class="text-decoration-none">
+          <div class="feature-card">
+            <div class="feature-icon">🍽️</div>
+            <h5>Restaurants</h5>
+            <p>Curated dining from coastal seafood to royal Mughlai cuisine. Filter by cuisine type and price range.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-4 reveal reveal-delay-4">
+        <a href="/routes" class="text-decoration-none">
+          <div class="feature-card">
+            <div class="feature-icon">🗺️</div>
+            <h5>Route Navigation</h5>
+            <p>Get turn-by-turn directions powered by Google Maps with travel tips and estimated journey times.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-4 reveal reveal-delay-5">
+        <a href="/translator" class="text-decoration-none">
+          <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h5>Language Translator</h5>
+            <p>Break language barriers instantly. Translate between English, Hindi, Tamil, Japanese, Arabic and more.</p>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-4 col-lg-4 reveal reveal-delay-6">
+        <a href="/emergency" class="text-decoration-none">
+          <div class="feature-card">
+            <div class="feature-icon">🆘</div>
+            <h5>Emergency Services</h5>
+            <p>One-tap SOS, emergency helplines, nearest hospitals and police stations. Your safety is our priority.</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOP DESTINATIONS PREVIEW -->
+<section style="background:var(--ivory-dark);padding:6rem 0">
+  <div class="container">
+    <div class="row align-items-end mb-5">
+      <div class="col-lg-7">
+        <span class="section-eyebrow">Handpicked For You</span>
+        <h2 class="section-title">Trending <em>Destinations</em></h2>
+      </div>
+      <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+        <a href="/tourist-places" class="btn-teal">View All Destinations →</a>
+      </div>
+    </div>
+    <div class="row g-4">
+      {% for place in places %}
+      <div class="col-md-6 col-lg-4 reveal reveal-delay-{{ loop.index }}">
+        <div class="destination-card">
+          <div class="card-img-wrap">
+            <img src="{{ place.image_url }}" alt="{{ place.name }}" loading="lazy">
+            <span class="card-img-overlay-badge">{{ place.category }}</span>
+          </div>
+          <div class="card-body-custom">
+            <h5>{{ place.name }}</h5>
+            <p class="card-location">📍 {{ place.location }}</p>
+            <p class="card-desc">{{ place.description }}</p>
+            <a href="/tourist-places" class="btn-teal" style="font-size:0.82rem;padding:0.5rem 1.2rem">Explore →</a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- SAFETY FEATURE HIGHLIGHT -->
+<section style="background:var(--charcoal);padding:6rem 0;position:relative;overflow:hidden">
+  <div style="position:absolute;top:-100px;right:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(13,79,92,0.4),transparent 70%);pointer-events:none"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-5 reveal">
+        <span class="section-eyebrow">Safety First</span>
+        <h2 class="section-title light">Know Before<br>You <em style="color:var(--amber)">Go</em></h2>
+        <p style="color:rgba(255,255,255,0.65);font-weight:300;margin:1.5rem 0">Every hotel, every area — rated for safety. Our real-time scores factor in crime data, proximity to hospitals, police stations, and traveller reports.</p>
+        <div class="d-flex flex-column gap-3 mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <span class="safety-badge safe" style="flex-shrink:0">🟢 Safe Area</span>
+            <span style="color:rgba(255,255,255,0.6);font-size:0.88rem">Score 75–100 · Low crime · Police nearby</span>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <span class="safety-badge moderate" style="flex-shrink:0">🟡 Moderate</span>
+            <span style="color:rgba(255,255,255,0.6);font-size:0.88rem">Score 50–74 · Average safety</span>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <span class="safety-badge risky" style="flex-shrink:0">🔴 Risky Area</span>
+            <span style="color:rgba(255,255,255,0.6);font-size:0.88rem">Score below 50 · Extra caution advised</span>
+          </div>
+        </div>
+        <a href="/hotels" class="btn-primary-custom">View Safety Ratings →</a>
+      </div>
+      <div class="col-lg-7 reveal reveal-delay-2">
+        <div class="row g-3">
+          {% for hotel in hotels %}
+          <div class="col-md-6">
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:1.2rem;transition:var(--transition)" class="hotel-preview-card">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 style="color:var(--white);font-family:var(--font-display);font-size:0.95rem;margin:0;max-width:70%">{{ hotel.hotel_name }}</h6>
+                <span class="safety-badge {% if hotel.safety_score >= 75 %}safe{% elif hotel.safety_score >= 50 %}moderate{% else %}risky{% endif %}" style="font-size:0.68rem">
+                  {{ hotel.safety_status }}
+                </span>
+              </div>
+              <p style="color:rgba(255,255,255,0.5);font-size:0.78rem;margin-bottom:0.7rem">📍 {{ hotel.location }}</p>
+              <div class="safety-score-text" style="color:rgba(255,255,255,0.7)">
+                <span>Safety</span>
+                <span style="font-weight:700;color:{% if hotel.safety_score >= 75 %}var(--safe-green){% elif hotel.safety_score >= 50 %}var(--amber){% else %}var(--risky-red){% endif %}">{{ hotel.safety_score }}/100</span>
+              </div>
+              <div class="safety-progress">
+                <div class="safety-progress-bar" data-width="{{ hotel.safety_score }}"
+                  style="background:{% if hotel.safety_score >= 75 %}var(--safe-green){% elif hotel.safety_score >= 50 %}var(--amber){% else %}var(--risky-red){% endif %};width:0%">
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="background:var(--teal-dark);padding:6rem 0">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="section-eyebrow">Traveller Stories</span>
+      <h2 class="section-title light">What Our <em style="color:var(--amber)">Explorers</em> Say</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4 reveal reveal-delay-1">
+        <div class="testimonial-card">
+          <p class="testimonial-quote">"Travella's safety ratings saved us from booking a hotel in a high-crime area in Old Delhi. We found a safe, beautiful property nearby instead. Truly a game-changer."</p>
+          <div class="d-flex align-items-center gap-3">
+            <img src="https://i.pravatar.cc/100?img=47" alt="Priya" class="testimonial-avatar">
+            <div>
+              <div style="color:var(--white);font-weight:600;font-size:0.9rem">Priya Sharma</div>
+              <div style="color:var(--amber);font-size:0.78rem">Mumbai, Maharashtra</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 reveal reveal-delay-2">
+        <div class="testimonial-card">
+          <p class="testimonial-quote">"The language translator was incredibly helpful during my trip to Tamil Nadu. I could communicate with locals without any awkwardness. Highly recommend Travella!"</p>
+          <div class="d-flex align-items-center gap-3">
+            <img src="https://i.pravatar.cc/100?img=11" alt="James" class="testimonial-avatar">
+            <div>
+              <div style="color:var(--white);font-weight:600;font-size:0.9rem">James Mitchell</div>
+              <div style="color:var(--amber);font-size:0.78rem">London, United Kingdom</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 reveal reveal-delay-3">
+        <div class="testimonial-card">
+          <p class="testimonial-quote">"Booked a vehicle through Travella for our Rajasthan road trip. The process was seamless, and the confirmation was instant. Beautiful app, beautiful journey!"</p>
+          <div class="d-flex align-items-center gap-3">
+            <img src="https://i.pravatar.cc/100?img=29" alt="Ananya" class="testimonial-avatar">
+            <div>
+              <div style="color:var(--white);font-weight:600;font-size:0.9rem">Ananya Krishnan</div>
+              <div style="color:var(--amber);font-size:0.78rem">Bengaluru, Karnataka</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section style="background:linear-gradient(135deg,var(--amber-dark),var(--amber));padding:5rem 0">
+  <div class="container text-center">
+    <h2 style="font-family:var(--font-display);font-size:2.5rem;font-weight:700;color:var(--charcoal);margin-bottom:1rem">Ready to Explore <em>India</em>?</h2>
+    <p style="color:rgba(26,26,46,0.75);font-size:1.05rem;max-width:500px;margin:0 auto 2rem;font-weight:300">Start your safe, smart journey with Travella. Discover, plan, and travel — all in one place.</p>
+    <a href="/tourist-places" class="btn-primary-custom" style="background:var(--charcoal);color:var(--white)">
+      <span>✈️</span> Begin Your Journey
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="footer-brand">Travel<span>la</span></div>
+        <p class="footer-desc">Your trusted smart travel companion for exploring India safely. Real-time safety insights, curated destinations, and 24/7 emergency support.</p>
+        <div>
+          <a href="#" class="social-icon">f</a>
+          <a href="#" class="social-icon">𝕏</a>
+          <a href="#" class="social-icon">in</a>
+          <a href="#" class="social-icon">▶</a>
+        </div>
+      </div>
+      <div class="col-sm-4 col-lg-2">
+        <h6>Explore</h6>
+        <ul>
+          <li><a href="/tourist-places">Destinations</a></li>
+          <li><a href="/hotels">Hotels</a></li>
+          <li><a href="/restaurants">Restaurants</a></li>
+          <li><a href="/routes">Navigation</a></li>
+        </ul>
+      </div>
+      <div class="col-sm-4 col-lg-2">
+        <h6>Services</h6>
+        <ul>
+          <li><a href="/translator">Translator</a></li>
+          <li><a href="/vehicle-booking">Vehicle Booking</a></li>
+          <li><a href="/emergency">Emergency</a></li>
+        </ul>
+      </div>
+      <div class="col-sm-4 col-lg-4">
+        <h6>Emergency</h6>
+        <ul>
+          <li><a href="tel:100">🚔 Police — 100</a></li>
+          <li><a href="tel:108">🚑 Ambulance — 108</a></li>
+          <li><a href="tel:101">🚒 Fire — 101</a></li>
+          <li><a href="tel:18001111363">📞 Tourist Helpline — 1800-111-363</a></li>
+        </ul>
+      </div>
+    </div>
+    <hr class="footer-divider">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);margin:0">© 2024 Travella. All rights reserved.</p>
+      <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);margin:0">Made with ❤️ for Indian Tourism</p>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

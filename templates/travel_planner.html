@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travel Planner — Travella</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+/* ── PLANNER SPECIFIC STYLES ── */
+.planner-hero {
+  background: linear-gradient(135deg, #082F38 0%, #0D4F5C 50%, #1A1A2E 100%);
+  padding: 9rem 0 5rem;
+  position: relative;
+  overflow: hidden;
+}
+.planner-hero::before {
+  content: '✈️';
+  position: absolute;
+  font-size: 20rem;
+  opacity: 0.04;
+  right: -2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Step Cards */
+.step-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(13,79,92,0.1);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  position: relative;
+}
+.step-card:hover { box-shadow: var(--shadow-md); }
+
+.step-number {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--teal), var(--teal-light));
+  color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* State Cards */
+.state-card {
+  background: var(--white);
+  border: 2px solid rgba(13,79,92,0.1);
+  border-radius: 16px;
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.state-card::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--teal), var(--amber));
+  transform: scaleX(0);
+  transition: transform 0.3s;
+}
+.state-card:hover, .state-card.selected {
+  border-color: var(--teal);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(13,79,92,0.15);
+}
+.state-card.selected {
+  background: rgba(13,79,92,0.04);
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(242,169,59,0.2);
+}
+.state-card:hover::before, .state-card.selected::before { transform: scaleX(1); }
+
+.state-emoji { font-size: 2rem; display: block; margin-bottom: 0.4rem; }
+.state-name  { font-weight: 700; font-size: 0.88rem; color: var(--text-dark); }
+.state-desc  { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
+
+/* Budget Slider */
+.budget-display {
+  background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+  color: white;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.budget-amount {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--amber);
+  display: block;
+  line-height: 1;
+}
+
+/* Plan Output */
+.plan-output {
+  display: none;
+  animation: fadeInUp 0.5s ease both;
+}
+.plan-output.show { display: block; }
+
+.plan-header {
+  background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+  color: white;
+  border-radius: 20px 20px 0 0;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.plan-header::before {
+  content: '🗺️';
+  position: absolute;
+  font-size: 8rem;
+  opacity: 0.1;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Day Card */
+.day-card {
+  background: var(--white);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(13,79,92,0.08);
+  margin-bottom: 1.2rem;
+  transition: var(--transition);
+}
+.day-card:hover { box-shadow: var(--shadow-md); }
+
+.day-header {
+  background: linear-gradient(135deg, var(--teal), var(--teal-light));
+  color: white;
+  padding: 0.9rem 1.4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.day-number {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.day-theme {
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+
+.day-body { padding: 1.2rem 1.4rem; }
+
+/* Timeline activity */
+.activity {
+  display: flex;
+  gap: 12px;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(13,79,92,0.06);
+  align-items: flex-start;
+}
+.activity:last-child { border-bottom: none; }
+
+.activity-time {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--teal);
+  min-width: 52px;
+  background: rgba(13,79,92,0.06);
+  border-radius: 6px;
+  padding: 2px 6px;
+  text-align: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.activity-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+.activity-info { flex: 1; }
+.activity-name { font-weight: 600; font-size: 0.9rem; color: var(--text-dark); }
+.activity-detail { font-size: 0.78rem; color: var(--text-mid); margin-top: 2px; }
+.activity-cost {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--amber-dark);
+  background: rgba(242,169,59,0.1);
+  border-radius: 8px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Budget Summary */
+.budget-summary-card {
+  background: var(--charcoal);
+  border-radius: 0 0 20px 20px;
+  padding: 2rem;
+  color: white;
+}
+
+.budget-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 0.88rem;
+}
+.budget-row:last-child { border-bottom: none; }
+.budget-row-label { color: rgba(255,255,255,0.65); }
+.budget-row-val   { font-weight: 700; color: var(--amber); }
+
+/* Tips section */
+.travel-tip {
+  display: flex;
+  gap: 10px;
+  padding: 0.8rem;
+  background: rgba(13,79,92,0.05);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--teal);
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+/* Range slider custom */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(13,79,92,0.15);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--teal);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(13,79,92,0.3);
+  transition: background 0.2s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { background: var(--amber); }
+
+/* Days selector */
+.days-btn {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  border: 2px solid rgba(13,79,92,0.15);
+  background: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-body);
+  color: var(--text-dark);
+}
+.days-btn.active, .days-btn:hover {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+  transform: scale(1.08);
+}
+
+/* Budget type pills */
+.budget-pill {
+  flex: 1;
+  padding: 0.7rem;
+  border: 2px solid rgba(13,79,92,0.15);
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s;
+  font-family: var(--font-body);
+}
+.budget-pill.active, .budget-pill:hover {
+  border-color: var(--teal);
+  background: rgba(13,79,92,0.05);
+}
+.budget-pill.active { border-color: var(--amber); background: rgba(242,169,59,0.06); }
+.budget-pill-icon  { font-size: 1.4rem; display: block; margin-bottom: 3px; }
+.budget-pill-label { font-size: 0.78rem; font-weight: 700; color: var(--text-dark); }
+.budget-pill-range { font-size: 0.7rem; color: var(--text-light); }
+
+/* Generate button */
+.generate-btn {
+  background: linear-gradient(135deg, var(--amber-dark), var(--amber));
+  color: var(--charcoal);
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 1rem 3rem;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: var(--font-body);
+  box-shadow: 0 6px 24px rgba(242,169,59,0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.generate-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(242,169,59,0.5);
+}
+.generate-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── STYLE TILES (multi-select) ── */
+.style-tile {
+  background: var(--white);
+  border: 2px solid rgba(13,79,92,0.12);
+  border-radius: 16px;
+  padding: 1.2rem 1rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  user-select: none;
+}
+.style-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(13,79,92,0.04), rgba(242,169,59,0.04));
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.style-tile:hover {
+  border-color: var(--teal);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(13,79,92,0.12);
+}
+.style-tile:hover::before { opacity: 1; }
+
+.style-tile.selected {
+  border-color: var(--amber);
+  background: rgba(242,169,59,0.05);
+  box-shadow: 0 0 0 3px rgba(242,169,59,0.2), 0 4px 16px rgba(13,79,92,0.1);
+  transform: translateY(-4px);
+}
+.style-tile.selected::before { opacity: 1; }
+
+.style-check {
+  position: absolute;
+  top: 8px; right: 10px;
+  width: 22px; height: 22px;
+  background: var(--amber);
+  color: var(--charcoal);
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.style-tile.selected .style-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.style-tile-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.4rem;
+  transition: transform 0.25s;
+}
+.style-tile:hover .style-tile-icon,
+.style-tile.selected .style-tile-icon { transform: scale(1.15) rotate(-3deg); }
+
+.style-tile-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  margin-bottom: 0.25rem;
+  font-family: var(--font-body);
+}
+.style-tile.selected .style-tile-name { color: var(--teal); }
+
+.style-tile-desc {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+.style-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(13,79,92,0.08);
+  border: 1px solid rgba(13,79,92,0.15);
+  color: var(--teal);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin: 2px;
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+/* Print / Download */
+@media print {
+  .no-print { display: none !important; }
+  .plan-output { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="spinner-overlay"><div class="spinner"></div></div>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg fixed-top scrolled">
+  <div class="container">
+    <a class="navbar-brand" href="/">Travel<span>la</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/tourist-places">Destinations</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/travel-planner">🗓️ Planner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/hotels">Hotels</a></li>
+        <li class="nav-item"><a class="nav-link" href="/restaurants">Restaurants</a></li>
+        <li class="nav-item"><a class="nav-link" href="/routes">Navigate</a></li>
+        <li class="nav-item"><a class="nav-link" href="/translator">Translator</a></li>
+        <li class="nav-item"><a class="nav-link" href="/vehicle-booking">Vehicles</a></li>
+        <li class="nav-item ms-2"><a class="nav-link nav-cta" href="/emergency">🆘 Emergency</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="planner-hero">
+  <div class="container" style="position:relative;z-index:1">
+    <div class="breadcrumb-custom"><a href="/">Home</a><span>/</span><span>Travel Planner</span></div>
+    <span class="section-eyebrow">🗓️ Smart Travel Planning</span>
+    <h1 style="color:white;font-family:var(--font-display);font-size:clamp(2.2rem,5vw,3.5rem)">
+      Plan Your Perfect <em style="color:var(--amber);font-style:italic">India Trip</em>
+    </h1>
+    <p style="color:rgba(255,255,255,0.7);max-width:520px;margin-top:1rem;font-size:1rem;font-weight:300">
+      Choose your state, set your days and budget — get a complete day-by-day itinerary with places, food, stay options and money-saving tips. 100% free.
+    </p>
+    <div class="d-flex gap-3 mt-3 flex-wrap">
+      <span style="background:rgba(29,185,84,0.15);border:1px solid rgba(29,185,84,0.3);color:#5af09a;padding:5px 14px;border-radius:20px;font-size:0.8rem;font-weight:600">✅ Budget Friendly</span>
+      <span style="background:rgba(242,169,59,0.15);border:1px solid rgba(242,169,59,0.3);color:var(--amber);padding:5px 14px;border-radius:20px;font-size:0.8rem;font-weight:600">⚡ Instant Plan</span>
+      <span style="background:rgba(13,79,92,0.3);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);padding:5px 14px;border-radius:20px;font-size:0.8rem;font-weight:600">📋 Day-by-Day Itinerary</span>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN PLANNER FORM -->
+<section style="background:var(--ivory);padding:4rem 0">
+  <div class="container">
+    <div class="row g-4 justify-content-center">
+      <div class="col-lg-10">
+
+        <!-- STEP 1: Choose State -->
+        <div class="step-card mb-4 no-print">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="step-number">1</div>
+            <div>
+              <h5 style="font-family:var(--font-display);margin:0;font-size:1.2rem">Choose Your Destination State</h5>
+              <p style="font-size:0.82rem;color:var(--text-mid);margin:0">Select which state of India you want to explore</p>
+            </div>
+          </div>
+
+          <!-- Search filter -->
+          <input type="text" id="stateSearch" placeholder="🔍 Search states..."
+            oninput="filterStates(this.value)"
+            style="width:100%;padding:0.7rem 1rem;border:1.5px solid rgba(13,79,92,0.15);border-radius:12px;font-family:var(--font-body);font-size:0.9rem;outline:none;margin-bottom:1rem;transition:var(--transition)"
+            onfocus="this.style.borderColor='var(--teal)'"
+            onblur="this.style.borderColor='rgba(13,79,92,0.15)'">
+
+          <div class="row g-2" id="stateGrid">
+            <!-- States injected by JS -->
+          </div>
+          <p id="selectedStateMsg" style="margin-top:0.8rem;font-size:0.85rem;color:var(--teal);font-weight:600;display:none">
+            ✅ Selected: <span id="selectedStateName"></span>
+          </p>
+        </div>
+
+        <!-- STEP 2: No. of Days -->
+        <div class="step-card mb-4 no-print">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="step-number">2</div>
+            <div>
+              <h5 style="font-family:var(--font-display);margin:0;font-size:1.2rem">Number of Days</h5>
+              <p style="font-size:0.82rem;color:var(--text-mid);margin:0">How many days are you travelling?</p>
+            </div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap" id="daysGrid">
+            {% for d in [1,2,3,4,5,6,7,10,14] %}
+            <button class="days-btn {% if d == 3 %}active{% endif %}" onclick="selectDays({{ d }}, this)">{{ d }}</button>
+            {% endfor %}
+          </div>
+          <p style="margin-top:0.8rem;font-size:0.85rem;color:var(--teal);font-weight:600">
+            📅 Selected: <span id="selectedDays">3</span> day(s)
+          </p>
+        </div>
+
+        <!-- STEP 3: Budget -->
+        <div class="step-card mb-4 no-print">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="step-number">3</div>
+            <div>
+              <h5 style="font-family:var(--font-display);margin:0;font-size:1.2rem">Your Total Budget</h5>
+              <p style="font-size:0.82rem;color:var(--text-mid);margin:0">Select your budget category for the entire trip</p>
+            </div>
+          </div>
+
+          <!-- Budget type pills -->
+          <div class="d-flex gap-2 flex-wrap mb-4" id="budgetPills">
+            <div class="budget-pill active" onclick="selectBudget('backpacker', this)" data-budget="backpacker">
+              <span class="budget-pill-icon">🎒</span>
+              <div class="budget-pill-label">Backpacker</div>
+              <div class="budget-pill-range">₹500–1,500/day</div>
+            </div>
+            <div class="budget-pill" onclick="selectBudget('budget', this)" data-budget="budget">
+              <span class="budget-pill-icon">💰</span>
+              <div class="budget-pill-label">Budget</div>
+              <div class="budget-pill-range">₹1,500–3,000/day</div>
+            </div>
+            <div class="budget-pill" onclick="selectBudget('midrange', this)" data-budget="midrange">
+              <span class="budget-pill-icon">🌟</span>
+              <div class="budget-pill-label">Mid Range</div>
+              <div class="budget-pill-range">₹3,000–7,000/day</div>
+            </div>
+            <div class="budget-pill" onclick="selectBudget('premium', this)" data-budget="premium">
+              <span class="budget-pill-icon">💎</span>
+              <div class="budget-pill-label">Premium</div>
+              <div class="budget-pill-range">₹7,000+/day</div>
+            </div>
+          </div>
+
+          <!-- Budget estimator -->
+          <div class="budget-display">
+            <div style="font-size:0.78rem;opacity:0.7;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.5rem">Estimated Total Trip Cost</div>
+            <span class="budget-amount" id="budgetTotal">₹4,500</span>
+            <div style="font-size:0.82rem;opacity:0.7;margin-top:0.4rem">for <span id="budgetDaysLabel">3</span> days · <span id="budgetTypeLabel">Backpacker</span> style</div>
+          </div>
+
+          <!-- Number of travelers -->
+          <div class="d-flex align-items-center gap-3">
+            <span style="font-size:0.88rem;font-weight:600;color:var(--text-mid)">👥 Travelers:</span>
+            <div class="d-flex align-items-center gap-2">
+              <button onclick="changeTravelers(-1)" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(13,79,92,0.2);background:white;cursor:pointer;font-size:1.1rem;transition:var(--transition)" onmouseover="this.style.background='var(--teal)';this.style.color='white'" onmouseout="this.style.background='white';this.style.color='inherit'">−</button>
+              <span id="travelerCount" style="font-family:var(--font-display);font-size:1.3rem;font-weight:700;min-width:30px;text-align:center;color:var(--teal)">1</span>
+              <button onclick="changeTravelers(1)"  style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(13,79,92,0.2);background:white;cursor:pointer;font-size:1.1rem;transition:var(--transition)" onmouseover="this.style.background='var(--teal)';this.style.color='white'" onmouseout="this.style.background='white';this.style.color='inherit'">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Travel Style (Multi-Select) -->
+        <div class="step-card mb-4 no-print">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="step-number">4</div>
+            <div style="flex:1">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                  <h5 style="font-family:var(--font-display);margin:0;font-size:1.2rem">Travel Style</h5>
+                  <p style="font-size:0.82rem;color:var(--text-mid);margin:0">Pick one or more — your plan will blend them all</p>
+                </div>
+                <div id="styleCountBadge" style="background:rgba(13,79,92,0.08);border:1.5px solid rgba(13,79,92,0.15);border-radius:20px;padding:4px 14px;font-size:0.8rem;font-weight:700;color:var(--teal);display:none">
+                  <span id="styleCount">0</span> selected
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Style cards grid — multi select -->
+          <div class="row g-3" id="styleGrid">
+            <div class="col-6 col-md-3">
+              <div class="style-tile selected" onclick="toggleStyle('Heritage',this)" data-style="Heritage">
+                <span class="style-tile-icon">🏛️</span>
+                <div class="style-tile-name">Heritage</div>
+                <div class="style-tile-desc">Forts, palaces, ancient temples & monuments</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="style-tile" onclick="toggleStyle('Beach',this)" data-style="Beach">
+                <span class="style-tile-icon">🏖️</span>
+                <div class="style-tile-name">Beach</div>
+                <div class="style-tile-desc">Coastal escapes, water sports & sunsets</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="style-tile" onclick="toggleStyle('Adventure',this)" data-style="Adventure">
+                <span class="style-tile-icon">🏔️</span>
+                <div class="style-tile-name">Adventure</div>
+                <div class="style-tile-desc">Trekking, rafting, camping & thrills</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="style-tile" onclick="toggleStyle('Wellness',this)" data-style="Wellness">
+                <span class="style-tile-icon">🧘</span>
+                <div class="style-tile-name">Wellness</div>
+                <div class="style-tile-desc">Yoga, Ayurveda, meditation & spas</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="style-tile" onclick="toggleStyle('Food Tour',this)" data-style="Food Tour">
+                <span class="style-tile-icon">🍽️</span>
+                <div class="style-tile-name">Food Tour</div>
+                <div class="style-tile-desc">Street food, local cuisine & culinary trails</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="style-tile" onclick="toggleStyle('Wildlife',this)" data-style="Wildlife">
+                <span class="style-tile-icon">🦁</span>
+                <div class="style-tile-name">Wildlife</div>
+                <div class="style-tile-desc">Safaris, national parks & nature reserves</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="style-tile" onclick="toggleStyle('Spiritual',this)" data-style="Spiritual">
+                <span class="style-tile-icon">🕌</span>
+                <div class="style-tile-name">Spiritual</div>
+                <div class="style-tile-desc">Temples, ashrams, pilgrimages & aartis</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="style-tile" onclick="toggleStyle('Cultural',this)" data-style="Cultural">
+                <span class="style-tile-icon">🎭</span>
+                <div class="style-tile-name">Cultural</div>
+                <div class="style-tile-desc">Art, music, festivals, crafts & local life</div>
+                <span class="style-check">✓</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected styles preview bar -->
+          <div id="selectedStylesBar" style="margin-top:1rem;padding:0.8rem 1rem;background:rgba(13,79,92,0.05);border-radius:12px;border:1.5px solid rgba(13,79,92,0.1);display:none">
+            <span style="font-size:0.78rem;font-weight:700;color:var(--text-mid);margin-right:8px">Your mix:</span>
+            <span id="selectedStyleTags"></span>
+          </div>
+        </div>
+
+        <!-- GENERATE BUTTON -->
+        <div class="text-center mb-5 no-print">
+          <button class="generate-btn" onclick="generatePlan()" id="generateBtn">
+            <span>✨</span> Generate My Travel Plan
+          </button>
+          <p style="font-size:0.78rem;color:var(--text-light);margin-top:0.8rem">
+            Completely free · No sign-up required · Instant results
+          </p>
+        </div>
+
+        <!-- GENERATED PLAN OUTPUT -->
+        <div class="plan-output" id="planOutput">
+
+          <!-- Plan Header -->
+          <div class="plan-header">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+              <div>
+                <span style="background:rgba(242,169,59,0.25);border:1px solid rgba(242,169,59,0.4);color:var(--amber);font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:1px">
+                  TRAVELLA TRAVEL PLAN
+                </span>
+                <h2 id="planTitle" style="color:white;font-family:var(--font-display);font-size:1.8rem;margin:8px 0 4px"></h2>
+                <p id="planSubtitle" style="color:rgba(255,255,255,0.7);margin:0;font-size:0.9rem"></p>
+              </div>
+              <div class="d-flex gap-2 no-print">
+                <button onclick="printPlan()" class="filter-btn" style="border-color:rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.1)">🖨️ Print</button>
+                <button onclick="resetPlan()" class="filter-btn" style="border-color:rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.1)">🔄 New Plan</button>
+              </div>
+            </div>
+            <!-- Quick stats -->
+            <div class="d-flex gap-4 flex-wrap mt-3">
+              <div><div style="color:rgba(255,255,255,0.5);font-size:0.72rem;text-transform:uppercase;letter-spacing:1px">State</div><div id="pState" style="color:white;font-weight:700;font-size:0.95rem"></div></div>
+              <div><div style="color:rgba(255,255,255,0.5);font-size:0.72rem;text-transform:uppercase;letter-spacing:1px">Duration</div><div id="pDays" style="color:white;font-weight:700;font-size:0.95rem"></div></div>
+              <div><div style="color:rgba(255,255,255,0.5);font-size:0.72rem;text-transform:uppercase;letter-spacing:1px">Budget</div><div id="pBudget" style="color:var(--amber);font-weight:700;font-size:0.95rem"></div></div>
+              <div><div style="color:rgba(255,255,255,0.5);font-size:0.72rem;text-transform:uppercase;letter-spacing:1px">Style</div><div id="pStyle" style="color:white;font-weight:700;font-size:0.95rem"></div></div>
+              <div><div style="color:rgba(255,255,255,0.5);font-size:0.72rem;text-transform:uppercase;letter-spacing:1px">Travelers</div><div id="pTravelers" style="color:white;font-weight:700;font-size:0.95rem"></div></div>
+            </div>
+          </div>
+
+          <!-- Day-by-Day Itinerary -->
+          <div style="background:var(--ivory);padding:2rem;border-left:1px solid rgba(13,79,92,0.08);border-right:1px solid rgba(13,79,92,0.08)">
+            <h5 style="font-family:var(--font-display);font-size:1.3rem;margin-bottom:1.5rem;color:var(--text-dark)">📅 Day-by-Day Itinerary</h5>
+            <div id="dayCards"></div>
+          </div>
+
+          <!-- Budget Breakdown -->
+          <div class="budget-summary-card">
+            <h5 style="font-family:var(--font-display);font-size:1.2rem;margin-bottom:1.5rem;color:var(--amber)">💰 Complete Budget Breakdown</h5>
+            <div id="budgetBreakdown"></div>
+            <div style="border-top:2px solid rgba(255,255,255,0.15);margin-top:1rem;padding-top:1rem">
+              <div class="d-flex justify-content-between align-items-center">
+                <span style="font-size:1rem;font-weight:700;color:white">Total Estimated Cost</span>
+                <span style="font-family:var(--font-display);font-size:1.8rem;font-weight:700;color:var(--amber)" id="grandTotal"></span>
+              </div>
+              <p style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:0.4rem">* Estimates based on average prices. Actual costs may vary.</p>
+            </div>
+          </div>
+
+          <!-- Tips & Warnings -->
+          <div style="background:var(--white);padding:2rem;border:1px solid rgba(13,79,92,0.08);border-top:none">
+            <div class="row g-4">
+              <div class="col-md-6">
+                <h5 style="font-family:var(--font-display);font-size:1.1rem;margin-bottom:1rem;color:var(--teal)">💡 Money-Saving Tips</h5>
+                <div id="moneySavingTips"></div>
+              </div>
+              <div class="col-md-6">
+                <h5 style="font-family:var(--font-display);font-size:1.1rem;margin-bottom:1rem;color:var(--risky-red)">⚠️ Safety & Travel Warnings</h5>
+                <div id="travelWarnings"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Emergency Contacts for the state -->
+          <div style="background:var(--charcoal);padding:2rem;border-radius:0 0 20px 20px">
+            <h5 style="font-family:var(--font-display);font-size:1.1rem;margin-bottom:1rem;color:var(--amber)">🆘 Emergency Contacts</h5>
+            <div class="row g-3" id="emergencyContacts"></div>
+          </div>
+
+        </div><!-- end plan-output -->
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4"><div class="footer-brand">Travel<span>la</span></div><p class="footer-desc">Smart travel planning for every Indian destination.</p></div>
+      <div class="col-sm-4 col-lg-2"><h6>Explore</h6><ul><li><a href="/tourist-places">Destinations</a></li><li><a href="/hotels">Hotels</a></li></ul></div>
+      <div class="col-sm-4 col-lg-2"><h6>Tools</h6><ul><li><a href="/travel-planner">Travel Planner</a></li><li><a href="/translator">Translator</a></li></ul></div>
+      <div class="col-sm-4 col-lg-4"><h6>Emergency</h6><ul><li><a href="tel:100">Police — 100</a></li><li><a href="tel:108">Ambulance — 108</a></li><li><a href="tel:1800111363">Tourist Helpline</a></li></ul></div>
+    </div>
+    <hr class="footer-divider">
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);text-align:center;margin:0">© 2024 Travella. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+// ════════════════════════════════════════════════════════════════
+//  TRAVELLA TRAVEL PLANNER — Complete India State-wise Data
+// ════════════════════════════════════════════════════════════════
+
+const STATES = [
+  { name:"Tamil Nadu",    emoji:"🛕", desc:"Temples, Beaches, Culture",
+    cities:["Chennai","Madurai","Ooty","Pondicherry","Coimbatore","Kanyakumari","Thanjavur","Rameswaram"],
+    highlights:["Meenakshi Temple","Marina Beach","Ooty Hills","French Quarter Pondy","Brihadeeswarar Temple"],
+    bestFor:["Heritage","Beach","Spiritual","Mountain"],
+    safety:"Safe", bestTime:"Oct–Feb",
+    tips:["KSRTC buses are cheapest (₹100–400 intercity)","Try Murugan Idli Shop everywhere","Book train early for Chennai–Ooty route","Hire autos by meter in Chennai"],
+    warnings:["North-East monsoon (Oct–Dec) in Chennai can flood","Summers (Apr–Jun) extremely hot","Crowded during Pongal festival (Jan)"],
+    places:{
+      Heritage:["Brihadeeswarar Temple Thanjavur","Meenakshi Amman Temple Madurai","Shore Temple Mahabalipuram","Brihadeeswara Temple","Fort St. George Chennai"],
+      Beach:["Marina Beach Chennai","Radhanagar Beach Andaman","Covelong Beach","Rameswaram Beach","ECR Beach Pondicherry"],
+      Spiritual:["Meenakshi Temple Madurai","Ramanathaswamy Temple Rameswaram","Kapaleeshwarar Temple Chennai","Auroville Pondicherry","Vivekananda Rock Kanyakumari"],
+      Mountain:["Ooty Botanical Gardens","Doddabetta Peak Ooty","Kodaikanal","Yercaud","Murugan Temple Coimbatore"],
+      "Food Tour":["Murugan Idli Shop Chennai","Ratna Cafe Chennai","Jigarthanda Madurai","Saravana Bhavan","Pondicherry French Cafes"],
+      Adventure:["Yelagiri Hills","Kodaikanal Trek","Ooty Cycling","Pykara Waterfall","Mudumalai Safari"],
+      Wellness:["Auroville Pondicherry","Sivananda Ashram","Yoga centres Coimbatore","Beach meditation Kanyakumari"],
+      Wildlife:["Mudumalai National Park","Anamalai Tiger Reserve","Point Calimere","Vedanthangal Bird Sanctuary"],
+      Cultural:["Thanjavur Tanjore Art","Chettinad Heritage Walk","Silk Weaving Kanchipuram","Pongal Festival Villages"]
+    }
+  },
+  { name:"Rajasthan",     emoji:"🏰", desc:"Forts, Palaces, Desert",
+    cities:["Jaipur","Udaipur","Jodhpur","Jaisalmer","Pushkar","Ranthambore","Bikaner","Kota"],
+    highlights:["Amber Fort","Lake Pichola","Jaisalmer Golden Fort","Mehrangarh Fort","Pushkar Camel Fair"],
+    bestFor:["Heritage","Adventure","Wildlife","Cultural"],
+    safety:"Safe", bestTime:"Oct–Mar",
+    tips:["Rajasthan State Highway bus is cheapest","Book palace hotels during off-season for 40% off","Camel safari prices: negotiate hard (start at ₹300)","Silk buying — Jaipur Blue Pottery is authentic"],
+    warnings:["May–Sep: 40–48°C extreme heat","Jaisalmer: sand storms possible","Watch out for overcharging in tourist areas"],
+    places:{
+      Heritage:["Amber Fort Jaipur","Mehrangarh Fort Jodhpur","Jaisalmer Fort","City Palace Udaipur","Hawa Mahal Jaipur"],
+      Beach:[],
+      Adventure:["Sam Sand Dunes Camel Safari","Pushkar Hot Air Balloon","Chittorgarh Fort Trek","Kumbhalgarh Wall Walk"],
+      Wildlife:["Ranthambore Tiger Reserve","Sariska Tiger Reserve","Keoladeo National Park"],
+      Cultural:["Bagore Ki Haveli Dance Show","Puppet Show Jaisalmer","Shekhawati Frescoes","Rajasthani Cooking Class"],
+      Spiritual:["Brahma Temple Pushkar","Karni Mata Temple Bikaner","Ranakpur Jain Temples","Eklingji Temple Udaipur"],
+      "Food Tour":["Dal Baati Churma","Laal Maas Jodhpur","Pyaaz Kachori Jaipur","Mawa Kachori","Rajasthani Thali"],
+      Wellness:["Pushkar Ashrams","Udaipur Palace Spa","Desert Meditation Camp"]
+    }
+  },
+  { name:"Kerala",        emoji:"🌴", desc:"Backwaters, Ayurveda, Spices",
+    cities:["Kochi","Thiruvananthapuram","Munnar","Alleppey","Wayanad","Kozhikode","Thrissur"],
+    highlights:["Backwaters Houseboat","Munnar Tea Gardens","Fort Kochi","Periyar Wildlife","Kovalam Beach"],
+    bestFor:["Beach","Wellness","Wildlife","Cultural"],
+    safety:"Safe", bestTime:"Sep–Mar",
+    tips:["Government houseboats cheapest (₹6000/night)","KSRTC Rajdhani bus covers most routes cheaply","Try meals on banana leaf for ₹80–150","Kovalam beach — use official beach restaurants"],
+    warnings:["Monsoon Jun–Aug: heavy rain, some roads blocked","Wayanad: leeches during trekking","Book houseboat very early for Dec–Jan"],
+    places:{
+      Beach:["Kovalam Beach","Varkala Cliff Beach","Marari Beach","Cherai Beach Kochi"],
+      Wellness:["Ayurveda Resort Thrissur","Sivananda Yoga Trivandrum","Munnar Tea Estate Spa"],
+      Wildlife:["Periyar Tiger Reserve","Wayanad Wildlife Sanctuary","Silent Valley National Park","Thattekad Bird Sanctuary"],
+      Heritage:["Fort Kochi Dutch Palace","Mattancherry Palace","Padmanabhapuram Palace"],
+      Spiritual:["Sabarimala Temple","Guruvayur Temple","Attukal Pongala Trivandrum"],
+      "Food Tour":["Kerala Fish Curry Kochi","Paragon Restaurant Kozhikode","Appam and Stew","Karimeen Fry Alleppey"],
+      Adventure:["Wayanad Trekking","Athirapally Waterfall","Munnar Cycling","Periyar Bamboo Rafting"],
+      Cultural:["Kathakali Performance Kochi","Theyyam ritual Kannur","Kalaripayattu show"]
+    }
+  },
+  { name:"Goa",           emoji:"🏖️", desc:"Beaches, Nightlife, Portuguese Heritage",
+    cities:["Panaji","North Goa","South Goa","Margao","Vasco"],
+    highlights:["Baga Beach","Basilica of Bom Jesus","Dudhsagar Falls","Old Goa Churches","Spice Plantations"],
+    bestFor:["Beach","Adventure","Cultural","Food Tour"],
+    safety:"Moderate", bestTime:"Nov–Feb",
+    tips:["Rent a scooter for ₹300–400/day — cheapest transport","South Goa beaches are quieter and cleaner","Eat at shacks for best value seafood","Book accommodation 3 months ahead for Dec–Jan"],
+    warnings:["Heavy tourist season Dec–Jan — 3x prices","Water safety: check red flag warnings daily","Petty theft at crowded beaches","Night: avoid isolated beaches"],
+    places:{
+      Beach:["Baga Beach North Goa","Palolem Beach South Goa","Anjuna Beach","Calangute Beach","Cola Beach Secret"],
+      Heritage:["Basilica of Bom Jesus Old Goa","Se Cathedral Old Goa","Chapora Fort","Aguada Fort"],
+      Adventure:["Dudhsagar Falls Trek","Water Sports Baga","Scuba Diving Goa","Parasailing Calangute"],
+      "Food Tour":["Fish Thali Martin's Corner","Thalassa Greek Restaurant","Vinayak Family Restaurant","Seafood at Candolim shacks"],
+      Cultural:["Spice Plantation Tour Ponda","Goa Carnival February","Saturday Night Market Arpora"],
+      Wellness:["Yoga Retreat Arambol","Healing practices Anjuna","Ayurveda massage South Goa"],
+      Wildlife:["Bhagwan Mahavir Wildlife Sanctuary","Bondla Wildlife Sanctuary","Cotigao Wildlife Sanctuary"]
+    }
+  },
+  { name:"Himachal Pradesh", emoji:"⛰️", desc:"Mountains, Monasteries, Trekking",
+    cities:["Shimla","Manali","Dharamshala","Kasol","Spiti","Dalhousie","Kullu"],
+    highlights:["Rohtang Pass","Hadimba Temple","Mcleodganj","Spiti Valley","Paragliding Billing"],
+    bestFor:["Mountain","Adventure","Spiritual","Wellness"],
+    safety:"Safe", bestTime:"Mar–Jun, Sep–Nov",
+    tips:["HRTC buses cheapest (Shimla–Manali ₹500)","Kasol is backpacker paradise — very cheap","Carry warm clothes even in summer at high altitudes","Book permits for Rohtang Pass in advance online"],
+    warnings:["Rohtang Pass closed Oct–May due to snow","Altitude sickness above 3000m — acclimatize","Flash floods in monsoon (Jul–Aug)","Roads can be closed without notice"],
+    places:{
+      Mountain:["Rohtang Pass Manali","Hadimba Temple Manali","Shimla Ridge","Spiti Valley Kaza","Dalhousie Chamera Lake"],
+      Adventure:["Paragliding Billing Bir","River Rafting Kullu","Trekking Hampta Pass","Kheerganga Trek","Ice Skating Shimla"],
+      Spiritual:["Key Monastery Spiti","Mcleodganj Monastery Dharamshala","Triund Trek Temple","Bhrigu Lake Trek","Manikaran Hot Springs"],
+      Wellness:["Mcleodganj Yoga Retreat","Vipassana Meditation Centre","Hot Springs Manikaran","Kasol Healing Camps"],
+      Cultural:["Tibetan Culture Mcleodganj","Local Fairs Kullu Dussehra","Shimla Heritage Walk","Spiti Ancient Villages"],
+      Wildlife:["Great Himalayan National Park","Pin Valley National Park","Kinner Kailash Trek"]
+    }
+  },
+  { name:"Uttar Pradesh",  emoji:"🕌", desc:"Taj Mahal, Spiritual Capital, History",
+    cities:["Agra","Varanasi","Lucknow","Prayagraj","Mathura","Ayodhya","Vrindavan"],
+    highlights:["Taj Mahal","Varanasi Ghats","Lucknow Nawabi Culture","Mathura Krishna Temples","Kumbh Mela"],
+    bestFor:["Heritage","Spiritual","Cultural","Food Tour"],
+    safety:"Moderate", bestTime:"Oct–Mar",
+    tips:["Online ticket booking for Taj Mahal skips 2hr queues","Train Gatimaan Express Delhi–Agra cheapest and fastest","Varanasi: hire auto from hotel — avoid ghat touts","Lucknow biryani — Tunday Kababi is iconic"],
+    warnings:["Summer 42–47°C — avoid May/June","Pickpockets active near Taj Mahal gates","Varanasi lanes can be confusing at night","Book trains 60 days in advance"],
+    places:{
+      Heritage:["Taj Mahal Agra","Agra Fort","Fatehpur Sikri","Lucknow Bara Imambara","Rumi Darwaza Lucknow"],
+      Spiritual:["Varanasi Ganga Ghats","Kashi Vishwanath Temple","Mathura Janmabhoomi Temple","Ayodhya Ram Mandir","Sarnath Buddha Site"],
+      Cultural:["Lucknow Chikankari Workshop","Agra Marble Inlay","Vrindavan Holi Festival","Varanasi Silk Weaving"],
+      "Food Tour":["Lucknow Tunday Kababi","Agra Petha Sweet","Varanasi Baati Chokha","Mathura Peda","Allahabad Tehri"],
+      Adventure:["Chambal Safari Agra","Sarnath Archaeological Walk","Boat Ride Varanasi Sunrise"],
+      Wildlife:["Dudhwa National Park","Pilibhit Tiger Reserve","Soor Sarovar Bird Sanctuary"]
+    }
+  },
+  { name:"Delhi",          emoji:"🏛️", desc:"Capital City, History, Street Food",
+    cities:["New Delhi","Old Delhi","South Delhi","Noida"],
+    highlights:["Red Fort","India Gate","Qutub Minar","Chandni Chowk","Lotus Temple"],
+    bestFor:["Heritage","Cultural","Food Tour"],
+    safety:"Moderate", bestTime:"Oct–Feb",
+    tips:["Delhi Metro is cheapest and fastest (₹10–60)","Old Delhi food walk is must-do — hire guide","Book hotels in Karol Bagh for budget stays","Connaught Place restaurants overcharge — explore side lanes"],
+    warnings:["Severe air pollution Oct–Jan","Delhi belly risk — drink bottled water","Aggressive auto drivers — use Ola/Uber","Avoid isolated areas after 10pm"],
+    places:{
+      Heritage:["Red Fort Old Delhi","Qutub Minar","Humayun Tomb","Lodhi Garden","Safdarjung Tomb"],
+      Cultural:["Chandni Chowk Street Walk","Hauz Khas Village","Crafts Museum","National Museum","Dilli Haat Crafts Fair"],
+      "Food Tour":["Chandni Chowk Paranthe Wali Gali","Jama Masjid Area Food","Khan Market Cafes","Connaught Place","Karim's Restaurant"],
+      Spiritual:["Akshardham Temple","Lotus Temple Bahai","Gurudwara Bangla Sahib","ISKCON Temple Delhi"],
+      Adventure:["Cycling Tour Old Delhi","Hot Air Balloon Delhi NCR"],
+      Wildlife:["Asola Bhatti Wildlife Sanctuary","Sanjay Gandhi Memorial"]
+    }
+  },
+  { name:"Maharashtra",   emoji:"🌊", desc:"Mumbai, Caves, Beaches",
+    cities:["Mumbai","Pune","Aurangabad","Nashik","Kolhapur","Lonavala"],
+    highlights:["Gateway of India","Ajanta Caves","Ellora Caves","Marine Drive","Lonavala Hills"],
+    bestFor:["Heritage","Beach","Adventure","Cultural"],
+    safety:"Safe", bestTime:"Oct–Feb",
+    tips:["Mumbai local train pass cheapest city transport (₹200/month)","Ajanta–Ellora combo ticket saves money","Pune–Mumbai Shivneri bus is premium but affordable","Street food in Dadar — best vada pav in the world"],
+    warnings:["Mumbai monsoon Jul–Sep: flooding possible","Marine Drive sunset — watch for pickpockets in crowds","Ajanta caves very hot Apr–Jun"],
+    places:{
+      Heritage:["Ajanta Caves Aurangabad","Ellora Caves Aurangabad","Gateway of India Mumbai","Chhatrapati Shivaji Terminus","Daulatabad Fort"],
+      Beach:["Juhu Beach Mumbai","Alibaug Beach","Ganapatipule Beach","Tarkarli Beach Malvan"],
+      Adventure:["Lonavala Trekking","Malshej Ghat","Rajmachi Fort Trek","Bhimashankar Trek"],
+      "Food Tour":["Vada Pav Mumbai","Misal Pav Pune","Kolhapuri Thali","Nashik Wine Tours","Marine Lines Restaurants"],
+      Cultural:["Mumbai Film Studios Tour","Pune Peshwa History","Kolhapur Palace","Mahabaleshwar Strawberry Farms"],
+      Wildlife:["Tadoba Tiger Reserve","Melghat Tiger Reserve","Bhimashankar Wildlife"],
+      Spiritual:["Shirdi Sai Temple","Trimbakeshwar Temple Nashik","Siddhivinayak Temple Mumbai"]
+    }
+  },
+  { name:"Karnataka",     emoji:"🐘", desc:"Tigers, Temples, Tech City",
+    cities:["Bengaluru","Mysuru","Hampi","Coorg","Chikmagalur","Udupi","Badami"],
+    highlights:["Mysore Palace","Hampi Ruins","Coorg Coffee Estates","Jog Falls","Bandipur Tiger Reserve"],
+    bestFor:["Heritage","Wildlife","Mountain","Cultural"],
+    safety:"Safe", bestTime:"Sep–Feb",
+    tips:["KSRTC buses cover entire Karnataka cheaply","Hampi cycling (₹100/day) is the best way to explore","Coorg homestays give best value + local experience","Book Bandipur safari 30 days in advance"],
+    warnings:["Monsoon Jul–Sep: Jog Falls good but trekking risky","Hampi: very hot Apr–Jun","Mysore: extremely crowded during Dasara (Oct)"],
+    places:{
+      Heritage:["Hampi Vijayanagara Ruins","Mysore Palace","Badami Cave Temples","Belur Halebidu Temples","Bidar Fort"],
+      Wildlife:["Bandipur National Park","Nagarhole Tiger Reserve","Bhadra Wildlife Sanctuary","Ranebennur Blackbuck"],
+      Mountain:["Coorg Coffee Estates","Chikmagalur Hills","Kudremukh Trek","Agumbe Rainforest"],
+      Cultural:["Mysore Silk Saree Factory","Udupi Temple Culture","Yakshagana Performance","Bidriware Craft Bidar"],
+      "Food Tour":["Udupi Masala Dosa","Coorg Pandi Curry","Mangalore Fish Curry","Bisi Bele Bath Bengaluru"],
+      Beach:["Murudeshwar Beach","Gokarna Beach","Murdeshwar Temple Beach","Karwar Beach"],
+      Spiritual:["Udupi Krishna Temple","Dharmasthala Temple","Sringeri Sharada Temple","Gokarna Temple"],
+      Adventure:["White Water Rafting Dandeli","Bhedaghat Trek","Dubare Elephant Camp Coorg"]
+    }
+  },
+  { name:"West Bengal",   emoji:"🎨", desc:"Culture, Kolkata, Sundarbans",
+    cities:["Kolkata","Darjeeling","Siliguri","Murshidabad","Bishnupur"],
+    highlights:["Victoria Memorial","Darjeeling Toy Train","Sundarbans Tiger","Howrah Bridge","Durga Puja"],
+    bestFor:["Heritage","Wildlife","Mountain","Cultural"],
+    safety:"Moderate", bestTime:"Oct–Mar",
+    tips:["Kolkata yellow taxis are charming and cheap","Darjeeling Toy Train — book weeks ahead","Maach Bhaat (fish rice) thali ₹100–150 everywhere","Sundarbans — only through authorized operators"],
+    warnings:["Kolkata summer Apr–Jun: 42°C + humidity","Sundarbans: tiger reserve — strictly follow guide rules","Kolkata traffic is intense — use Metro"],
+    places:{
+      Heritage:["Victoria Memorial Kolkata","Howrah Bridge","Murshidabad Palace","Bishnupur Terracotta Temples","Indian Museum Kolkata"],
+      Wildlife:["Sundarbans Tiger Reserve","Buxa Tiger Reserve","Gorumara National Park","Jaldapara Wildlife Sanctuary"],
+      Mountain:["Darjeeling Tiger Hill Sunrise","Sandakphu Trek","Singalila Ridge","Mirik Lake"],
+      Cultural:["Kolkata Durga Puja","College Street Book Market","Kumartuli Potter's District","Shantiniketan Arts"],
+      "Food Tour":["Kathi Rolls Kolkata","Mishti Doi (sweet curd)","Hilsa Fish Biryani","Kolkata Biryani Arsalan"],
+      Spiritual:["Kalighat Temple Kolkata","Dakshineswar Kali Temple","Belur Math Kolkata","Tarapith Temple"]
+    }
+  },
+  { name:"Gujarat",       emoji:"🦁", desc:"Lions, Salt Desert, Culture",
+    cities:["Ahmedabad","Rann of Kutch","Sasan Gir","Vadodara","Surat","Somnath","Dwarka"],
+    highlights:["Rann of Kutch White Desert","Gir Lion Reserve","Sabarmati Ashram","Rani Ki Vav","Somnath Temple"],
+    bestFor:["Wildlife","Heritage","Cultural","Spiritual"],
+    safety:"Safe", bestTime:"Nov–Feb",
+    tips:["Rann Utsav festival (Nov–Feb) — book 3 months ahead","Gir lion safari must be booked online in advance","Ahmedabad: AMTS bus pass cheapest city option","Gujarat pure veg state — incredible vegetarian food"],
+    warnings:["Summer: 42–46°C extreme heat","Monsoon: Rann of Kutch flooded — avoid Jul–Sep","Rann Utsav accommodation sells out months ahead"],
+    places:{
+      Wildlife:["Gir National Park Lions","Velavadar Blackbuck Sanctuary","Marine National Park Gulf of Kutch"],
+      Heritage:["Rani Ki Vav Patan","Adalaj Stepwell","Modhera Sun Temple","Lothal Archaeological Site","Champaner UNESCO Site"],
+      Cultural:["Rann of Kutch White Salt Desert","Bhuj Kutchi Handicrafts","Ahmedabad Heritage Walk","Patan Patola Silk Weaving"],
+      Spiritual:["Somnath Temple","Dwarka Temple","Palitana Jain Temples","Akshardham Gandhinagar","Ambaji Temple"],
+      "Food Tour":["Gujarati Thali Ahmedabad","Fafda Jalebi","Undhiyu Surat","Dhokla everywhere","Manek Chowk Night Food Ahmedabad"],
+      Adventure:["Saputara Hill Station","Polo Forest Trek","Gir Camping","Rann of Kutch Night Safari"]
+    }
+  },
+  { name:"Odisha",        emoji:"🌊", desc:"Temples, Tribal Culture, Beaches",
+    cities:["Bhubaneswar","Puri","Konark","Cuttack","Koraput"],
+    highlights:["Konark Sun Temple","Puri Jagannath Temple","Chilika Lake","Rath Yatra","Odisha Tribal Culture"],
+    bestFor:["Heritage","Beach","Spiritual","Cultural"],
+    safety:"Safe", bestTime:"Oct–Feb",
+    tips:["Odisha is very affordable — cheapest state for tourism","Puri: stay near Puri station for best budget options","Try Dalma and Pakhala (traditional Odia dishes)","Conch shell market at Puri beach is unique"],
+    warnings:["Bay of Bengal cyclones Oct–Nov occasionally","Puri beach: swimming dangerous due to riptides","Rath Yatra (Jun–Jul): extreme crowds — 1 million+"],
+    places:{
+      Heritage:["Konark Sun Temple","Udayagiri Khandagiri Caves Bhubaneswar","Mukteshwara Temple","Lingaraja Temple"],
+      Beach:["Puri Beach","Chandrabhaga Beach Konark","Chilika Lake","Gopalpur Beach"],
+      Spiritual:["Jagannath Temple Puri","Lingaraja Temple Bhubaneswar","Bhubaneswar 1000 Temples"],
+      Cultural:["Odisha Tribal Museum Koraput","Raghurajpur Artist Village","Pattachitra Painting Workshop","Rath Yatra Festival"],
+      Wildlife:["Chilika Lake Flamingos","Bhitarkanika Crocodile Sanctuary","Simlipal Tiger Reserve","Chilika Irrawaddy Dolphins"],
+      "Food Tour":["Puri Jagannath Mahaprasad","Dalma Dal Bhubaneswar","Pakhala Bhata","Chhena Poda Sweet"]
+    }
+  }
+];
+
+// Budget daily ranges
+const BUDGET_RANGES = {
+  backpacker: { min:500,  max:1500,  label:"Backpacker", stay:"Hostel/Dorm", food:"Street food & local dhabas", transport:"Bus & shared autos", desc:"Bare essentials — maximum experience, minimum spend" },
+  budget:     { min:1500, max:3000,  label:"Budget",     stay:"Budget hotels (AC)", food:"Local restaurants", transport:"Bus + occasional cab", desc:"Comfortable basics without breaking the bank" },
+  midrange:   { min:3000, max:7000,  label:"Mid Range",  stay:"3-star hotels", food:"Good restaurants", transport:"Trains + app cabs", desc:"Good comfort with quality experiences" },
+  premium:    { min:7000, max:15000, label:"Premium",    stay:"Heritage/4-star hotels", food:"Fine dining", transport:"Private cab + flights", desc:"Best experiences, maximum comfort" }
+};
+
+// State search
+function filterStates(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.state-card').forEach(card => {
+    const name = card.querySelector('.state-name').textContent.toLowerCase();
+    card.closest('.col-6').style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+// ── STATE ──────────────────────────────────
+let selectedState    = null;
+let selectedDays     = 3;
+let selectedBudget   = 'backpacker';
+let selectedStyles   = ['Heritage'];  // array — multi-select
+let travelerCount    = 1;
+
+// Render state grid
+function renderStates() {
+  const grid = document.getElementById('stateGrid');
+  grid.innerHTML = STATES.map(s =>
+    `<div class="col-6 col-md-4 col-lg-3">
+      <div class="state-card" onclick="selectState('${s.name}', this)">
+        <span class="state-emoji">${s.emoji}</span>
+        <div class="state-name">${s.name}</div>
+        <div class="state-desc">${s.desc}</div>
+        <div style="margin-top:6px">
+          <span style="font-size:0.68rem;background:rgba(13,79,92,0.08);color:var(--teal);padding:2px 7px;border-radius:10px;font-weight:600">${s.bestTime}</span>
+          <span style="font-size:0.68rem;background:rgba(29,185,84,0.08);color:#1a7a40;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:3px">${s.safety}</span>
+        </div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+function selectState(name, card) {
+  selectedState = name;
+  document.querySelectorAll('.state-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  document.getElementById('selectedStateName').textContent = name;
+  document.getElementById('selectedStateMsg').style.display = 'block';
+}
+
+function selectDays(d, btn) {
+  selectedDays = d;
+  document.querySelectorAll('.days-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('selectedDays').textContent = d;
+  updateBudgetDisplay();
+}
+
+function selectBudget(b, pill) {
+  selectedBudget = b;
+  document.querySelectorAll('.budget-pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  updateBudgetDisplay();
+}
+
+function toggleStyle(s, tile) {
+  const idx = selectedStyles.indexOf(s);
+  if (idx === -1) {
+    // Add style
+    selectedStyles.push(s);
+    tile.classList.add('selected');
+  } else {
+    // Remove style — but keep at least 1
+    if (selectedStyles.length === 1) {
+      // Shake the tile to indicate can't deselect last one
+      tile.style.animation = 'shake 0.3s ease';
+      setTimeout(() => tile.style.animation = '', 350);
+      return;
+    }
+    selectedStyles.splice(idx, 1);
+    tile.classList.remove('selected');
+  }
+  updateStyleUI();
+}
+
+function updateStyleUI() {
+  const count   = selectedStyles.length;
+  const badge   = document.getElementById('styleCountBadge');
+  const bar     = document.getElementById('selectedStylesBar');
+  const tags    = document.getElementById('selectedStyleTags');
+  const counter = document.getElementById('styleCount');
+
+  // Update count badge
+  counter.textContent = count;
+  badge.style.display = count > 0 ? 'block' : 'none';
+
+  // Update selected styles preview bar
+  if (count > 0) {
+    bar.style.display = 'block';
+    const styleEmojis = {
+      'Heritage':'🏛️','Beach':'🏖️','Adventure':'🏔️','Wellness':'🧘',
+      'Food Tour':'🍽️','Wildlife':'🦁','Spiritual':'🕌','Cultural':'🎭'
+    };
+    tags.innerHTML = selectedStyles.map(s =>
+      `<span class="style-tag-pill">${styleEmojis[s] || '✦'} ${s}</span>`
+    ).join('');
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function changeTravelers(delta) {
+  travelerCount = Math.max(1, Math.min(20, travelerCount + delta));
+  document.getElementById('travelerCount').textContent = travelerCount;
+  updateBudgetDisplay();
+}
+
+function updateBudgetDisplay() {
+  const r = BUDGET_RANGES[selectedBudget];
+  const mid = Math.round((r.min + r.max) / 2);
+  const total = mid * selectedDays * travelerCount;
+  document.getElementById('budgetTotal').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('budgetDaysLabel').textContent = selectedDays;
+  document.getElementById('budgetTypeLabel').textContent = r.label;
+}
+
+// ── GENERATE PLAN ──────────────────────────
+function generatePlan() {
+  if (!selectedState) {
+    alert('Please select a destination state first!');
+    document.getElementById('stateGrid').scrollIntoView({ behavior:'smooth' });
+    return;
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating Your Plan...';
+
+  setTimeout(() => {
+    buildPlan();
+    btn.disabled = false;
+    btn.innerHTML = '<span>✨</span> Generate My Travel Plan';
+    document.getElementById('planOutput').classList.add('show');
+    document.getElementById('planOutput').scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 800);
+}
+
+function buildPlan() {
+  const state = STATES.find(s => s.name === selectedState);
+  const r     = BUDGET_RANGES[selectedBudget];
+  const mid   = Math.round((r.min + r.max) / 2);
+
+  // Update plan header
+  document.getElementById('planTitle').textContent    = state.name + ' — ' + selectedDays + '-Day ' + r.label + ' Trip';
+  document.getElementById('planSubtitle').textContent = selectedStyles.join(' + ') + ' focused · ' + travelerCount + ' traveler(s) · ' + r.desc;
+  document.getElementById('pState').textContent       = state.name + ' ' + state.emoji;
+  document.getElementById('pDays').textContent        = selectedDays + ' Days';
+  document.getElementById('pBudget').textContent      = '₹' + (mid * selectedDays * travelerCount).toLocaleString('en-IN');
+  document.getElementById('pStyle').textContent       = selectedStyles.join(' · ');
+  document.getElementById('pTravelers').textContent   = travelerCount + (travelerCount === 1 ? ' person' : ' people');
+
+  // Build day cards
+  buildDayCards(state, r, mid);
+
+  // Budget breakdown
+  buildBudgetBreakdown(r, mid);
+
+  // Tips and warnings
+  buildTipsWarnings(state, r);
+
+  // Emergency contacts
+  buildEmergencyContacts(state);
+}
+
+function getPlaces(state) {
+  // Merge places from ALL selected styles — no duplicates
+  const merged = [];
+  const seen   = new Set();
+
+  // First add places from selected styles in order
+  for (const style of selectedStyles) {
+    const list = state.places[style] || [];
+    for (const p of list) {
+      if (!seen.has(p)) { merged.push(p); seen.add(p); }
+    }
+  }
+
+  // Fallback if nothing found
+  if (!merged.length) {
+    for (const key of Object.keys(state.places)) {
+      for (const p of (state.places[key] || [])) {
+        if (!seen.has(p)) { merged.push(p); seen.add(p); }
+      }
+    }
+  }
+  return merged;
+}
+
+function buildDayCards(state, r, mid) {
+  const places     = getPlaces(state);
+  const cities     = state.cities;
+  const container  = document.getElementById('dayCards');
+  const themes     = ['Arrival & Orientation','Exploration Day','Deep Dive','Hidden Gems','Cultural Immersion','Adventure Day','Relaxation Day','Local Experiences','Heritage Trail','Final Day'];
+  const dayActivities = {
+    morning:   ['Explore the main attraction','Sunrise photography spot','Heritage walk','Local market visit','Temple/monument visit'],
+    afternoon: ['Museum or cultural centre','Boat ride / nature walk','Shopping for local crafts','Street food trail','Guided tour'],
+    evening:   ['Sunset viewpoint','Light & sound show','Evening Aarti ceremony','Rooftop dinner','Cultural performance'],
+    night:     ['Rest at hotel','Explore night market','Night street food','Stargazing','Live music venue']
+  };
+
+  let html = '';
+  for (let day = 1; day <= selectedDays; day++) {
+    const theme   = themes[(day - 1) % themes.length];
+    const city    = cities[(day - 1) % cities.length];
+    const place1  = places[(day * 2 - 2) % places.length] || places[0];
+    const place2  = places[(day * 2 - 1) % places.length] || places[1] || places[0];
+    const isLast  = day === selectedDays;
+
+    const activities = buildActivities(day, isLast, city, place1, place2, r, mid);
+
+    html += `<div class="day-card">
+      <div class="day-header">
+        <div>
+          <div class="day-number">Day ${day}${day === 1 ? ' — Arrival' : isLast ? ' — Departure' : ''}</div>
+          <div class="day-theme">${isLast ? 'Farewell & Departure' : theme} · ${city}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:0.82rem;opacity:0.85">Est. spend</div>
+          <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--amber-light)">₹${(mid * travelerCount).toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+      <div class="day-body">${activities}</div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function buildActivities(day, isLast, city, place1, place2, r, mid) {
+  const isFirst = day === 1;
+  const stayType = r.stay;
+  const foodType = r.food;
+  const transport = r.transport;
+
+  let acts = [];
+
+  if (isFirst) {
+    acts = [
+      { time:'07:00', icon:'🚂', name:'Arrive at ' + city, detail:'Check in to ' + stayType + ' · Freshen up and orient yourself', cost:'—' },
+      { time:'10:00', icon:'🚶', name:'Neighbourhood Walk', detail:'Get a feel for the local area · Find a good local eatery · Get a SIM card if needed', cost:'₹50' },
+      { time:'13:00', icon:'🍽️', name:'Lunch — ' + foodType, detail:'Try the local specialty dish of ' + city + ' · ' + foodType + ' recommended', cost:'₹' + Math.round(mid * 0.15 * travelerCount) },
+      { time:'15:00', icon:'🏛️', name:'First Look: ' + place1, detail:'Begin exploring the primary attraction · Take your time · No rushing on arrival day', cost:'₹' + Math.round(mid * 0.12 * travelerCount) },
+      { time:'19:00', icon:'🌅', name:'Sunset Stroll', detail:'Find the nearest viewpoint or promenade · Great for photography', cost:'Free' },
+      { time:'20:00', icon:'🍛', name:'Dinner', detail:'Authentic local restaurant in ' + city + ' · Ask hotel for recommendation', cost:'₹' + Math.round(mid * 0.18 * travelerCount) },
+    ];
+  } else if (isLast) {
+    acts = [
+      { time:'06:00', icon:'🌅', name:'Early Morning Farewell Visit', detail:'One last visit to your favourite spot in ' + city, cost:'Free' },
+      { time:'09:00', icon:'🍳', name:'Hotel Breakfast + Check Out', detail:'Enjoy a leisurely last breakfast · Pack and check out · Store bags', cost:'₹' + Math.round(mid * 0.1 * travelerCount) },
+      { time:'11:00', icon:'🛍️', name:'Last-Minute Shopping', detail:'Souvenirs, local handicrafts, spices · ' + city + ' specialties to take home', cost:'₹' + Math.round(mid * 0.2 * travelerCount) },
+      { time:'13:00', icon:'🍽️', name:'Farewell Lunch', detail:'Best restaurant meal of the trip · Treat yourself on the last day!', cost:'₹' + Math.round(mid * 0.25 * travelerCount) },
+      { time:'16:00', icon:'🚂', name:'Head to Station/Airport', detail:'Allow plenty of time · Book ' + transport + ' in advance', cost:'₹' + Math.round(mid * 0.15 * travelerCount) },
+    ];
+  } else {
+    acts = [
+      { time:'06:30', icon:'🌅', name:'Early Morning: ' + place1, detail:'Best experience before crowds arrive · Golden hour photography', cost:'₹' + Math.round(mid * 0.1 * travelerCount) },
+      { time:'09:00', icon:'☕', name:'Breakfast', detail:'Local breakfast experience · Try the street food specialty · ' + foodType, cost:'₹' + Math.round(mid * 0.12 * travelerCount) },
+      { time:'10:30', icon:'🏛️', name:place2, detail:'Deep explore of second attraction · Hire local guide for context', cost:'₹' + Math.round(mid * 0.15 * travelerCount) },
+      { time:'13:30', icon:'🍽️', name:'Lunch in ' + city, detail:'Popular local restaurant · Ask locals for recommendations', cost:'₹' + Math.round(mid * 0.15 * travelerCount) },
+      { time:'15:00', icon:'🎭', name:'Afternoon: Local Culture', detail:'Explore local market, craft area, or neighbourhood · Interact with locals', cost:'₹' + Math.round(mid * 0.1 * travelerCount) },
+      { time:'17:30', icon:'📸', name:'Sunset Photography', detail:'Best viewpoint in ' + city + ' · Golden hour colours are spectacular', cost:'Free' },
+      { time:'19:30', icon:'🎶', name:'Evening Cultural Experience', detail:'Cultural show, evening aarti, or live performance if available in ' + city, cost:'₹' + Math.round(mid * 0.1 * travelerCount) },
+      { time:'21:00', icon:'🛌', name:'Dinner + Rest', detail:foodType + ' dinner · Return to ' + stayType, cost:'₹' + Math.round(mid * 0.18 * travelerCount) },
+    ];
+  }
+
+  return acts.map(a =>
+    `<div class="activity">
+      <span class="activity-time">${a.time}</span>
+      <span class="activity-icon">${a.icon}</span>
+      <div class="activity-info">
+        <div class="activity-name">${a.name}</div>
+        <div class="activity-detail">${a.detail}</div>
+      </div>
+      <span class="activity-cost">${a.cost}</span>
+    </div>`
+  ).join('');
+}
+
+function buildBudgetBreakdown(r, mid) {
+  const perDay     = mid * travelerCount;
+  const total      = perDay * selectedDays;
+  const stayPct    = 0.35, foodPct = 0.25, transPort = 0.20, entryPct = 0.10, miscPct = 0.10;
+
+  const rows = [
+    ['🏨 Accommodation (' + r.stay + ')', Math.round(total * stayPct)],
+    ['🍽️ Food & Drinks (' + r.food + ')', Math.round(total * foodPct)],
+    ['🚌 Transport (' + r.transport + ')', Math.round(total * transPort)],
+    ['🎟️ Entry Fees & Activities',          Math.round(total * entryPct)],
+    ['🛍️ Shopping & Miscellaneous',         Math.round(total * miscPct)],
+  ];
+
+  document.getElementById('budgetBreakdown').innerHTML = rows.map(([label, amt]) =>
+    `<div class="budget-row">
+      <span class="budget-row-label">${label}</span>
+      <span class="budget-row-val">₹${amt.toLocaleString('en-IN')}</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('grandTotal').textContent = '₹' + total.toLocaleString('en-IN');
+}
+
+function buildTipsWarnings(state, r) {
+  const genericTips = [
+    'Book trains on IRCTC at least 2 months in advance for best prices',
+    'Download Google Maps offline for the state before you leave',
+    'Carry a photocopy of your ID — do not carry originals everywhere',
+    'Use UPI (Paytm, PhonePe) everywhere — most vendors accept it now',
+    'Early morning visits (6–8am) are cooler and have fewer crowds',
+    r.label === 'Backpacker' || r.label === 'Budget' ? 'KSRTC/State buses are 5x cheaper than private taxis — use them' : 'Book through reputed hotels to get best value and safety',
+  ];
+
+  const allTips = [...state.tips, ...genericTips.slice(0, 4)];
+  document.getElementById('moneySavingTips').innerHTML = allTips.slice(0, 6).map(t =>
+    `<div class="travel-tip">💡 ${t}</div>`
+  ).join('');
+
+  const genericWarnings = [
+    'Always have emergency numbers saved: Police 100, Ambulance 108',
+    'Keep a backup of tickets and bookings on Google Drive',
+    'Do not accept food or drinks from strangers on trains/buses',
+    'Use only registered taxis or Ola/Uber — avoid unlicensed vehicles',
+  ];
+
+  const allWarnings = [...state.warnings, ...genericWarnings];
+  document.getElementById('travelWarnings').innerHTML = allWarnings.slice(0, 6).map(w =>
+    `<div class="travel-tip" style="border-left-color:var(--risky-red);background:rgba(229,57,53,0.04)">⚠️ ${w}</div>`
+  ).join('');
+}
+
+function buildEmergencyContacts(state) {
+  const contacts = [
+    { icon:'🚔', name:'Police', num:'100', color:'#1565c0' },
+    { icon:'🚑', name:'Ambulance', num:'108', color:'#2e7d32' },
+    { icon:'🚒', name:'Fire Brigade', num:'101', color:'#c62828' },
+    { icon:'🧳', name:'Tourist Helpline', num:'1800-111-363', color:'#6a1b9a' },
+    { icon:'👩‍⚕️', name:'Women Helpline', num:'1091', color:'#ad1457' },
+    { icon:'🆘', name:'National Emergency', num:'112', color:'#e65100' },
+  ];
+
+  document.getElementById('emergencyContacts').innerHTML = contacts.map(c =>
+    `<div class="col-6 col-md-4">
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:1rem;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:4px">${c.icon}</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:1px">${c.name}</div>
+        <a href="tel:${c.num}" style="display:block;font-family:var(--font-display);font-size:1.3rem;font-weight:700;color:var(--amber);text-decoration:none;margin-top:3px">${c.num}</a>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ── PRINT ──────────────────────────────────
+function printPlan() {
+  window.print();
+}
+
+function resetPlan() {
+  document.getElementById('planOutput').classList.remove('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── INIT ───────────────────────────────────
+renderStates();
+updateBudgetDisplay();
+updateStyleUI();  // show initial selected styles
+</script>
+</body>
+</html>

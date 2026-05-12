@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tourist Places — Travella</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+/* ── CARDS ── */
+.dest-card {
+  background: var(--white);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(13,79,92,0.08);
+  transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+  height: 100%;
+}
+.dest-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 24px 60px rgba(13,79,92,0.18);
+  border-color: rgba(13,79,92,0.2);
+}
+.dest-card:hover .card-img-wrap img { transform: scale(1.08); }
+.dest-card:hover .explore-btn { background: var(--amber); color: var(--charcoal); }
+
+.explore-btn {
+  background: var(--teal);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 0.5rem 1.3rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  font-family: 'DM Sans', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.explore-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(13,79,92,0.3); }
+
+/* ── DETAIL MODAL ── */
+.detail-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,30,40,0.7);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+.detail-modal-overlay.open { display: flex; }
+
+.detail-modal {
+  background: var(--white);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 860px;
+  margin: auto;
+  overflow: hidden;
+  animation: modalIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  position: relative;
+}
+
+@keyframes modalIn {
+  from { opacity:0; transform: scale(0.88) translateY(40px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+
+.modal-hero {
+  height: 300px;
+  position: relative;
+  overflow: hidden;
+}
+.modal-hero img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform 6s ease;
+}
+.detail-modal:hover .modal-hero img { transform: scale(1.05); }
+
+.modal-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(8,47,56,0.85) 0%, rgba(8,47,56,0.2) 60%, transparent 100%);
+}
+
+.modal-hero-content {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1.5rem 2rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 40px; height: 40px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+.modal-close:hover { background: var(--risky-red); border-color: var(--risky-red); transform: scale(1.1); }
+
+.modal-body-scroll {
+  padding: 2rem;
+  max-height: calc(100vh - 340px);
+  overflow-y: auto;
+}
+
+/* Section title inside modal */
+.sec-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--teal);
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid rgba(13,79,92,0.1);
+}
+
+/* Safety meter */
+.safety-meter {
+  height: 10px;
+  background: rgba(13,79,92,0.08);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.safety-meter-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 1s ease;
+}
+
+/* Pros / Cons */
+.pro-item, .con-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  border-bottom: 1px solid rgba(13,79,92,0.05);
+}
+.pro-item:last-child, .con-item:last-child { border-bottom: none; }
+.pro-dot { color: #1DB954; font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.con-dot { color: #E53935; font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* Info chips */
+.info-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--ivory);
+  border: 1px solid rgba(13,79,92,0.12);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin: 3px;
+}
+
+/* Month pill */
+.month-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 2px;
+}
+.month-best { background: rgba(29,185,84,0.15); color: #1a7a40; border: 1px solid rgba(29,185,84,0.3); }
+.month-ok   { background: rgba(242,169,59,0.15); color: #b07010; border: 1px solid rgba(242,169,59,0.3); }
+.month-bad  { background: rgba(229,57,53,0.1);   color: #c02020; border: 1px solid rgba(229,57,53,0.2); }
+
+/* Culture tag */
+.culture-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(13,79,92,0.08), rgba(13,79,92,0.04));
+  border: 1px solid rgba(13,79,92,0.15);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  color: var(--text-dark);
+  margin: 3px;
+}
+
+/* Safety level badge */
+.safety-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.sl-safe     { background: rgba(29,185,84,0.12);  color: #1a7a40; border: 1.5px solid rgba(29,185,84,0.35); }
+.sl-moderate { background: rgba(242,169,59,0.12); color: #b07010; border: 1.5px solid rgba(242,169,59,0.35); }
+.sl-caution  { background: rgba(229,57,53,0.1);   color: #c02020; border: 1.5px solid rgba(229,57,53,0.25); }
+
+/* Tip box */
+.tip-box {
+  background: linear-gradient(135deg, rgba(13,79,92,0.06), rgba(242,169,59,0.04));
+  border-left: 4px solid var(--amber);
+  border-radius: 0 12px 12px 0;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+/* Photo strip */
+.photo-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+.photo-strip img {
+  width: 100%; height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+.photo-strip img:hover { transform: scale(1.05); }
+
+/* Rating stars */
+.star-filled { color: var(--amber); }
+.star-empty  { color: #ddd; }
+
+/* Scrollbar inside modal */
+.modal-body-scroll::-webkit-scrollbar { width: 4px; }
+.modal-body-scroll::-webkit-scrollbar-thumb { background: rgba(13,79,92,0.25); border-radius: 2px; }
+
+/* Tab navigation inside modal */
+.modal-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 1rem 2rem 0;
+  border-bottom: 2px solid rgba(13,79,92,0.08);
+  background: white;
+  overflow-x: auto;
+}
+.modal-tab {
+  padding: 0.5rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-mid);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.modal-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+.modal-tab:hover  { color: var(--teal); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="spinner-overlay"><div class="spinner"></div></div>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg fixed-top scrolled">
+  <div class="container">
+    <a class="navbar-brand" href="/">Travel<span>la</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/tourist-places">Destinations</a></li>
+        <li class="nav-item"><a class="nav-link" href="/travel-planner">🗓️ Planner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/hotels">Hotels</a></li>
+        <li class="nav-item"><a class="nav-link" href="/restaurants">Restaurants</a></li>
+        <li class="nav-item"><a class="nav-link" href="/routes">Navigate</a></li>
+        <li class="nav-item"><a class="nav-link" href="/translator">Translator</a></li>
+        <li class="nav-item"><a class="nav-link" href="/vehicle-booking">Vehicles</a></li>
+        <li class="nav-item ms-2"><a class="nav-link nav-cta" href="/emergency">🆘 Emergency</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HERO -->
+<section class="page-hero">
+  <div class="container" style="position:relative;z-index:1">
+    <div class="breadcrumb-custom"><a href="/">Home</a><span>/</span><span>Destinations</span></div>
+    <span class="section-eyebrow">500+ Destinations</span>
+    <h1>Discover <em style="font-style:italic;color:var(--amber)">India</em></h1>
+    <p class="mt-2" style="max-width:500px">Click any destination to see detailed info — safety level, best time to visit, local culture, pros, cons, and travel tips.</p>
+  </div>
+</section>
+
+<!-- FILTER BAR -->
+<div style="background:var(--white);padding:1.2rem 0;box-shadow:0 2px 20px rgba(13,79,92,0.08);position:sticky;top:72px;z-index:100">
+  <div class="container">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <span style="font-size:0.82rem;font-weight:700;color:var(--text-mid)">Filter:</span>
+      <button class="filter-btn active" onclick="filterCat(this,'')">All</button>
+      {% for cat in categories %}
+      <button class="filter-btn" onclick="filterCat(this,'{{ cat.category }}')">
+        {% if cat.category=='Beach' %}🏖️{% elif cat.category=='Mountain' %}⛰️{% elif cat.category=='Heritage' %}🏛️{% elif cat.category=='City' %}🏙️{% elif cat.category=='Wildlife' %}🐆{% elif cat.category=='Spiritual' %}🕌{% endif %}
+        {{ cat.category }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- PLACES GRID -->
+<section style="padding:4rem 0;background:var(--ivory)">
+  <div class="container">
+    <div class="row g-4" id="placesGrid">
+      {% for place in places %}
+      <div class="col-md-6 col-lg-4 place-col reveal" data-category="{{ place.category }}">
+        <div class="dest-card" onclick="openDetail('{{ place.name | replace("'","\'") }}')">
+          <div class="card-img-wrap">
+            <img src="{{ place.image_url }}" alt="{{ place.name }}" loading="lazy"
+              onerror="this.src='https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600'">
+            <span class="card-img-overlay-badge">
+              {% if place.category=='Beach' %}🏖️{% elif place.category=='Mountain' %}⛰️{% elif place.category=='Heritage' %}🏛️{% elif place.category=='City' %}🏙️{% elif place.category=='Wildlife' %}🐆{% elif place.category=='Spiritual' %}🕌{% endif %}
+              {{ place.category }}
+            </span>
+            <!-- Click hint -->
+            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(13,79,92,0.7),transparent);padding:1rem 1rem 0.7rem;opacity:0;transition:opacity 0.3s" class="card-hover-hint">
+              <span style="color:white;font-size:0.78rem;font-weight:600">👆 Click for full details</span>
+            </div>
+          </div>
+          <div class="card-body-custom">
+            <h5 style="font-size:1.05rem;margin-bottom:0.25rem">{{ place.name }}</h5>
+            <p class="card-location" style="margin-bottom:0.5rem">📍 {{ place.location }}</p>
+            <p class="card-desc" style="font-size:0.84rem;margin-bottom:1rem">{{ place.description }}</p>
+            <div class="d-flex justify-content-between align-items-center">
+              <button class="explore-btn" onclick="event.stopPropagation();openDetail('{{ place.name | replace("'","\'") }}')">
+                🔍 Explore Details
+              </button>
+              <a href="/routes?to={{ place.location | urlencode }}" class="btn-teal"
+                style="font-size:0.78rem;padding:0.45rem 0.9rem"
+                onclick="event.stopPropagation()">🗺️ Navigate</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="background:var(--teal);padding:4rem 0;text-align:center">
+  <div class="container">
+    <h2 style="font-family:var(--font-display);color:white;font-size:2rem;margin-bottom:1rem">Book Your Stay Near These Destinations</h2>
+    <a href="/hotels" class="btn-primary-custom">View Safety-Rated Hotels</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4"><div class="footer-brand">Travel<span>la</span></div><p class="footer-desc">Smart travel companion for India.</p></div>
+      <div class="col-sm-4 col-lg-2"><h6>Explore</h6><ul><li><a href="/tourist-places">Destinations</a></li><li><a href="/hotels">Hotels</a></li><li><a href="/restaurants">Restaurants</a></li></ul></div>
+      <div class="col-sm-4 col-lg-2"><h6>Services</h6><ul><li><a href="/translator">Translator</a></li><li><a href="/vehicle-booking">Vehicles</a></li><li><a href="/emergency">Emergency</a></li></ul></div>
+      <div class="col-sm-4 col-lg-4"><h6>Emergency</h6><ul><li><a href="tel:100">Police - 100</a></li><li><a href="tel:108">Ambulance - 108</a></li></ul></div>
+    </div>
+    <hr class="footer-divider">
+    <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);text-align:center;margin:0">2024 Travella. All rights reserved.</p>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════
+     DETAIL MODAL
+════════════════════════════════════════ -->
+<div class="detail-modal-overlay" id="detailOverlay" onclick="closeDetailOutside(event)">
+  <div class="detail-modal" id="detailModal">
+    <!-- Hero Image -->
+    <div class="modal-hero">
+      <img id="mHeroImg" src="" alt="">
+      <div class="modal-hero-overlay"></div>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+      <div class="modal-hero-content">
+        <span id="mCategory" style="background:var(--amber);color:var(--charcoal);font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:1px;text-transform:uppercase"></span>
+        <h2 id="mName" style="color:white;font-family:'Playfair Display',serif;font-size:1.8rem;margin:6px 0 2px;line-height:1.2"></h2>
+        <p id="mLocation" style="color:rgba(255,255,255,0.8);font-size:0.88rem;margin:0"></p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchTab('overview',this)">📋 Overview</button>
+      <button class="modal-tab" onclick="switchTab('safety',this)">🛡️ Safety</button>
+      <button class="modal-tab" onclick="switchTab('proscons',this)">✅ Pros & Cons</button>
+      <button class="modal-tab" onclick="switchTab('culture',this)">🎭 Culture</button>
+      <button class="modal-tab" onclick="switchTab('tips',this)">💡 Travel Tips</button>
+      <button class="modal-tab" onclick="switchTab('besttime',this)">📅 Best Time</button>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="modal-body-scroll">
+
+      <!-- OVERVIEW TAB -->
+      <div class="tab-panel active" id="tab-overview">
+        <p id="mDesc" style="font-size:0.95rem;color:var(--text-mid);line-height:1.8;margin-bottom:1.5rem"></p>
+        <div class="row g-3 mb-3">
+          <div class="col-6 col-md-3">
+            <div style="background:var(--ivory);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(13,79,92,0.08)">
+              <div style="font-size:1.5rem;margin-bottom:4px" id="mRatingStars"></div>
+              <div style="font-size:0.75rem;color:var(--text-light);text-transform:uppercase;letter-spacing:1px">Rating</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div style="background:var(--ivory);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(13,79,92,0.08)">
+              <div style="font-size:1.3rem;font-family:'Playfair Display',serif;font-weight:700;color:var(--teal)" id="mEntry"></div>
+              <div style="font-size:0.75rem;color:var(--text-light);text-transform:uppercase;letter-spacing:1px">Entry Fee</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div style="background:var(--ivory);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(13,79,92,0.08)">
+              <div style="font-size:1.3rem;font-family:'Playfair Display',serif;font-weight:700;color:var(--teal)" id="mDuration"></div>
+              <div style="font-size:0.75rem;color:var(--text-light);text-transform:uppercase;letter-spacing:1px">Ideal Stay</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div style="background:var(--ivory);border-radius:12px;padding:1rem;text-align:center;border:1px solid rgba(13,79,92,0.08)">
+              <div style="font-size:1.3rem;font-family:'Playfair Display',serif;font-weight:700;color:var(--teal)" id="mType"></div>
+              <div style="font-size:0.75rem;color:var(--text-light);text-transform:uppercase;letter-spacing:1px">Category</div>
+            </div>
+          </div>
+        </div>
+        <div class="sec-title">🔑 Key Highlights</div>
+        <div id="mHighlights"></div>
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+          <a id="mNavBtn" href="#" class="btn-primary-custom" style="font-size:0.85rem;padding:0.6rem 1.4rem">🗺️ Get Directions</a>
+          <a id="mGmapsBtn" href="#" target="_blank" style="background:white;border:1.5px solid rgba(13,79,92,0.2);color:var(--teal);font-size:0.85rem;font-weight:600;padding:0.6rem 1.4rem;border-radius:30px;text-decoration:none;transition:var(--transition)" onmouseover="this.style.background='var(--teal)';this.style.color='white'" onmouseout="this.style.background='white';this.style.color='var(--teal)'">📌 View on Google Maps</a>
+        </div>
+      </div>
+
+      <!-- SAFETY TAB -->
+      <div class="tab-panel" id="tab-safety">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div id="mSafetyBadge"></div>
+          <div>
+            <div style="font-size:0.85rem;color:var(--text-mid)" id="mSafetyDesc"></div>
+          </div>
+        </div>
+        <div class="sec-title">📊 Safety Breakdown</div>
+        <div id="mSafetyBars" class="mb-4"></div>
+        <div class="sec-title">⚠️ Safety Warnings</div>
+        <div id="mWarnings" class="mb-4"></div>
+        <div class="sec-title">✅ Safety Positives</div>
+        <div id="mSafetyPos"></div>
+      </div>
+
+      <!-- PROS & CONS TAB -->
+      <div class="tab-panel" id="tab-proscons">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div style="background:rgba(29,185,84,0.05);border:1.5px solid rgba(29,185,84,0.2);border-radius:16px;padding:1.2rem">
+              <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#1a7a40;margin-bottom:1rem;display:flex;align-items:center;gap:6px">
+                ✅ Pros
+              </div>
+              <div id="mPros"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div style="background:rgba(229,57,53,0.04);border:1.5px solid rgba(229,57,53,0.2);border-radius:16px;padding:1.2rem">
+              <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#c02020;margin-bottom:1rem;display:flex;align-items:center;gap:6px">
+                ❌ Cons
+              </div>
+              <div id="mCons"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <div class="sec-title">⚖️ Verdict</div>
+          <p id="mVerdict" style="font-size:0.9rem;color:var(--text-mid);line-height:1.8;background:var(--ivory);border-radius:12px;padding:1rem"></p>
+        </div>
+      </div>
+
+      <!-- CULTURE TAB -->
+      <div class="tab-panel" id="tab-culture">
+        <p id="mCultureDesc" style="font-size:0.92rem;color:var(--text-mid);line-height:1.8;margin-bottom:1.5rem"></p>
+        <div class="sec-title">🎭 Cultural Highlights</div>
+        <div id="mCultureTags" class="mb-4"></div>
+        <div class="sec-title">🍽️ Local Food & Cuisine</div>
+        <div id="mFood" class="mb-4"></div>
+        <div class="sec-title">👗 Dress Code & Etiquette</div>
+        <div id="mEtiquette" style="font-size:0.88rem;color:var(--text-mid);line-height:1.8;background:rgba(13,79,92,0.04);border-radius:12px;padding:1rem;border-left:4px solid var(--teal)"></div>
+      </div>
+
+      <!-- TIPS TAB -->
+      <div class="tab-panel" id="tab-tips">
+        <div class="sec-title">💡 Essential Travel Tips</div>
+        <div id="mTips" class="mb-4"></div>
+        <div class="sec-title">🚗 How to Get There</div>
+        <div id="mHowToGet" class="mb-4"></div>
+        <div class="sec-title">💰 Budget Guide</div>
+        <div id="mBudget"></div>
+      </div>
+
+      <!-- BEST TIME TAB -->
+      <div class="tab-panel" id="tab-besttime">
+        <p id="mBestTimeDesc" style="font-size:0.92rem;color:var(--text-mid);line-height:1.8;margin-bottom:1.5rem"></p>
+        <div class="sec-title">📅 Month-by-Month Guide</div>
+        <div id="mMonths" class="mb-4"></div>
+        <div class="sec-title">🌤️ Weather Overview</div>
+        <div id="mWeather"></div>
+      </div>
+
+    </div><!-- end modal-body-scroll -->
+  </div><!-- end detail-modal -->
+</div><!-- end overlay -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+// ════════════════════════════════════════════════════════════════
+//  DESTINATION DETAILS DATABASE
+//  Rich info for every place: safety, pros/cons, culture, tips
+// ════════════════════════════════════════════════════════════════
+const PLACE_DETAILS = {
+
+  "Taj Mahal": {
+    rating: 5, entry: "₹1,100", duration: "2-3 hrs", type: "Heritage",
+    highlights: ["UNESCO World Heritage Site","Symbol of eternal love","Best at sunrise & sunset","Stunning marble inlay work","22 years to build (1631-1653)"],
+    safety: { level: "Safe", score: 88, desc: "Well-patrolled tourist zone with heavy security. Pickpocketing possible in crowded areas.",
+      bars: [["Tourist Police","90"],["Crowd Management","85"],["Lighting & CCTV","92"],["Medical Facilities","75"]],
+      warnings: ["Beware of unofficial guides outside the gate","Avoid touts near the east gate","Do not carry large bags inside"],
+      positives: ["Dedicated tourist police force","Bag scanners at all entries","Well-lit pathways at all times","Medical post inside complex"] },
+    pros: ["Most iconic monument in India","Stunning beauty at any time of day","Well-maintained grounds","Audio guides available","Multiple entry points"],
+    cons: ["Very crowded especially on weekends","Long queues during peak season","Strict bag restrictions","High entry fee for foreigners","No photography inside mausoleum"],
+    verdict: "Absolutely worth visiting — one of the most breathtaking sights in the world. Go at sunrise on a weekday to avoid crowds and see the marble glow in golden light.",
+    culture: { desc: "The Taj Mahal is the pinnacle of Mughal architecture — a fusion of Persian, Ottoman, and Indian styles. Built by Emperor Shah Jahan for his wife Mumtaz Mahal, it represents the height of Mughal artistic achievement and is deeply embedded in India's cultural identity.",
+      tags: ["Mughal Architecture","Islamic Art","Persian Influence","Symbol of Love","Royal Heritage"],
+      food: ["Try Petha (Agra sweet) nearby","Bedai and jalebi for breakfast at Deviram","Mughlai cuisine at Peshwari restaurant","Famous Agra ka Dalmoth snack"],
+      etiquette: "Remove shoes before entering the mausoleum. Dress modestly — cover shoulders and knees. No loud music near the complex. Photography is allowed in gardens but NOT inside the main tomb. Be respectful of the religious significance of the site." },
+    tips: ["Book tickets online to skip queues","Visit Tuesday to Sunday (closed Fridays)","Sunrise visit (6am) gives golden light and fewer crowds","Hire an ASI-certified guide inside the complex","Carry only a small transparent bag","Take the eco-friendly battery bus from the gate","Bring water — no plastic bottles inside"],
+    howToGet: ["Train: Gatimaan Express from Delhi (1.5 hrs)","Bus: Regular buses from Delhi & Jaipur","Car: 4 hrs from Delhi via Yamuna Expressway","Nearest airport: Agra (AGR), 13km away"],
+    budget: ["Budget: ₹500-1000/day (dorm + street food)","Mid: ₹2000-4000/day (hotel + restaurants)","Luxury: ₹8000+/day (Oberoi Amarvilas)","Entry fee: ₹1100 (foreigner), ₹50 (Indian)"],
+    bestTimeDesc: "October to March is ideal — cool weather and clear skies. Monsoon (July-Sept) is beautiful but humid. Avoid May-June — extreme heat up to 45°C.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"bad",Jun:"bad",Jul:"ok",Aug:"ok",Sep:"ok",Oct:"best",Nov:"best",Dec:"best" },
+    weather: "Winters (Oct-Feb): 5-20°C, perfect. Summers (Mar-Jun): 25-45°C, very hot. Monsoon (Jul-Sep): 25-35°C, humid with rain.",
+    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800"
+  },
+
+  "Radhanagar Beach": {
+    rating: 5, entry: "Free", duration: "Half day", type: "Beach",
+    highlights: ["Asia's best beach (TIME magazine)","Crystal-clear turquoise waters","Dense forest backdrop","Stunning sunsets","Safe swimming conditions"],
+    safety: { level: "Safe", score: 82, desc: "Relatively isolated and safe. Lifeguards present. Minimal crime. Remote location means limited medical access.",
+      bars: [["Lifeguard Presence","85"],["Water Safety","80"],["Crime Level","90"],["Medical Access","55"]],
+      warnings: ["No swimming after dark","Jellyfish possible during monsoon","Limited connectivity — download offline maps","Carry cash — no ATMs nearby"],
+      positives: ["Lifeguards on duty","Clean, uncrowded beach","Forest Department patrols","Safe for solo female travelers"] },
+    pros: ["Pristine natural beauty","Not overcrowded like Goa","Crystal clear water","Beautiful forest backdrop","Great for photography"],
+    cons: ["Remote — limited amenities","No nightlife","Few food options","Expensive to reach (ferry required)","No shade except tree line"],
+    verdict: "One of the most beautiful beaches in Asia. Ideal for those seeking unspoiled natural beauty rather than party beach vibes. Worth every rupee of the journey.",
+    culture: { desc: "The Andaman Islands have a fascinating blend of indigenous tribal culture, colonial history, and natural beauty. The indigenous Jarawa and Sentinelese tribes still inhabit these islands, though most tourists interact only with the settled communities.",
+      tags: ["Andamanese Culture","Colonial History","Tribal Heritage","Marine Ecosystem","Island Life"],
+      food: ["Fresh seafood at Havelock restaurants","Try Grilled Barracuda","Coconut-based curries","Fresh coconut water on beach"],
+      etiquette: "Do not litter — the beach is protected. No alcohol on the beach. Respect local fishing communities. Photography of tribal areas is strictly prohibited by law. Be mindful of the marine ecosystem — no touching corals." },
+    tips: ["Take the 6am government ferry from Port Blair","Book accommodation weeks in advance in peak season","Carry cash — ATMs are unreliable","Best swimming between Oct and May","Bring your own snacks","Snorkeling at Elephant Beach nearby","Watch sunset from the north end of beach"],
+    howToGet: ["Fly to Port Blair (VTZ airport)","Ferry from Port Blair to Havelock: 2-2.5 hrs","Private speedboat: 1 hr (expensive)","Only accessible by sea from Port Blair"],
+    budget: ["Budget: ₹1500-2500/day (guesthouse + local food)","Mid: ₹4000-7000/day (resort)","Luxury: ₹12000+/day (Barefoot Resort)","Ferry: ₹350-1200 depending on class"],
+    bestTimeDesc: "October to May is perfect — calm seas and sunny skies. Monsoon (June-Sept) brings rough seas and ferry suspensions. December-January is peak season.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"best",May:"best",Jun:"bad",Jul:"bad",Aug:"bad",Sep:"bad",Oct:"ok",Nov:"best",Dec:"best" },
+    weather: "Tropical climate. Nov-May: 23-30°C, sunny. Jun-Oct: 25-32°C, heavy rain and rough seas.",
+    image: "https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=800"
+  },
+
+  "Meenakshi Amman Temple": {
+    rating: 5, entry: "Free (camera ₹50)", duration: "2-3 hrs", type: "Spiritual",
+    highlights: ["14 magnificent gopurams","Hall of Thousand Pillars","Golden lotus tank","1200 years of history","UNESCO tentative list"],
+    safety: { level: "Safe", score: 85, desc: "Well-managed temple with dedicated security and crowd control. Very safe for tourists including solo female travelers.",
+      bars: [["Temple Security","90"],["Crowd Management","80"],["Medical Facilities","75"],["Tourist Police","85"]],
+      warnings: ["Very crowded on festival days","Footwear theft possible — use paid lockers","Bag check mandatory at entry","Photography restricted in inner sanctum"],
+      positives: ["Professional security staff","Dedicated tourist entry line","Well-maintained pathways","Night darshan available"] },
+    pros: ["One of India's greatest temples","Breathtaking architecture","Open late for evening darshan","Free entry for all","Vibrant and alive with worship"],
+    cons: ["Extremely crowded on weekends","Long queues for special darshan","Photography banned inside sanctum","Footwear management can be chaotic","Aggressive souvenir sellers outside"],
+    verdict: "An absolute must-visit — the most alive and vibrant major temple in India. Go in the evening for the Aarti ceremony which is truly unforgettable.",
+    culture: { desc: "Meenakshi Temple is the living heart of Madurai and one of the oldest continuously functioning temples in India. Dedicated to Goddess Meenakshi (a form of Parvati) and Lord Sundareswarar (Shiva), it represents the pinnacle of Dravidian temple architecture and Tamil culture.",
+      tags: ["Dravidian Architecture","Tamil Culture","Shaivism","Living Temple","South Indian Art"],
+      food: ["Famous Jigarthanda drink nearby","Madurai Kari Dosa is a must","Best idlis at Murugan Idli Shop","Evening snacks near east gate"],
+      etiquette: "Non-Hindus may not be allowed in the innermost sanctums. Dress modestly — men must remove shirts in some areas. Cover head with a dupatta or scarf. Remove shoes at the entrance. No leather products inside the temple. Speak softly." },
+    tips: ["Visit between 6-8am or 6-9pm for fewer crowds","Hire an authorized temple guide for context","The evening aarti at 9pm is spectacular","Buy a camera permit to photograph architecture","The 4 main gopurams can be seen from outside","Prasad is free inside — carry a small container","Take the rooftop view of the gopurams"],
+    howToGet: ["Madurai Airport (IXM) is 12km away","Train: Madurai Junction is 2km walk","Bus: Regular buses from Chennai (7 hrs) and Coimbatore","Auto-rickshaw from city center: ₹50-80"],
+    budget: ["Budget: ₹600-1200/day (lodge + local meals)","Mid: ₹2000-3500/day","Entry: Free, Camera: ₹50","Special darshan: ₹100-500"],
+    bestTimeDesc: "October to March is ideal. The Chithirai Festival in April-May draws massive crowds. Avoid peak summer (May-June).",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"ok",Jun:"ok",Jul:"ok",Aug:"ok",Sep:"ok",Oct:"best",Nov:"best",Dec:"best" },
+    weather: "Hot and humid year round. Oct-Feb: 20-32°C pleasant. Mar-Jun: 30-42°C hot. Jul-Sep: 25-35°C with rain.",
+    image: "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800"
+  },
+
+  "Kerala Backwaters": {
+    rating: 4.8, entry: "Houseboat from ₹6000", duration: "1-2 days", type: "City",
+    highlights: ["900km of interconnected waterways","Traditional kettuvallam houseboats","Lush paddy fields and coconut groves","Unique ecosystem","UNESCO Biosphere Reserve nearby"],
+    safety: { level: "Safe", score: 86, desc: "Very safe tourist zone. Kerala has one of India's best tourist safety records. Houseboats are licensed and regulated.",
+      bars: [["Tourist Safety","88"],["Houseboat Standards","85"],["Medical Access","75"],["Crime Rate","90"]],
+      warnings: ["Verify houseboat license before booking","Rain can cause flooding Jun-Aug","Insect repellent essential","Some areas have poor mobile connectivity"],
+      positives: ["Kerala Tourism regulates all operators","Tourist Police hotline available","Well-connected by road for emergencies","Generally very safe for solo travelers"] },
+    pros: ["Unique experience found nowhere else","Incredible natural beauty","Authentic Kerala culture","Delicious fresh seafood","Very relaxing and peaceful"],
+    cons: ["Expensive houseboats in peak season","Crowded waterways near Alleppey","Mosquitoes in evenings","Limited activities inside houseboat","Some houseboats poorly maintained"],
+    verdict: "A truly unforgettable experience — floating through emerald green waterways while locals fish and birds call from the trees. Book a certified houseboat and go at least once.",
+    culture: { desc: "The Kerala Backwaters are the lifeline of coastal Kerala — home to ancient trading routes, fishing communities, coir weavers, and coconut farmers. Life along the backwaters has remained largely unchanged for centuries.",
+      tags: ["Kerala Culture","Coir Industry","Fishing Heritage","Ayurveda","Snake Boat Races"],
+      food: ["Kerala fish curry cooked in your boat","Fresh prawn stir-fry","Appam with coconut milk","Karimeen (pearl spot fish) fry","Toddy (local coconut alcohol)"],
+      etiquette: "Respect privacy of local villagers while cruising. Do not photograph people without permission. Ask before visiting coir factories. Dress modestly when visiting churches or temples along the route." },
+    tips: ["Book 2-night houseboat for best experience","Alleppey (Alappuzha) is the main hub","Choose AC houseboat if visiting Apr-Jun","Sunrise on backwaters is magical — wake up early","Try kayaking in the narrow canals","Visit during Onam festival (Aug-Sept) for snake boat race","Choose government-certified houseboats only"],
+    howToGet: ["Nearest airport: Cochin (COK), 85km from Alleppey","Train: Alleppey station has direct trains from major cities","Bus: KSRTC buses from Kochi, Trivandrum","Taxi from Kochi: 1.5 hrs"],
+    budget: ["Budget: ₹3000-5000/day (shared houseboat)","Mid: ₹6000-12000/day (private 1-bedroom houseboat)","Luxury: ₹15000-30000/day (premium houseboats)","Kayaking: ₹500-1000/hr"],
+    bestTimeDesc: "November to February is perfect. Monsoon (June-August) is beautiful but can be rough. Avoid October-November due to post-monsoon flooding.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"ok",Jun:"bad",Jul:"bad",Aug:"ok",Sep:"ok",Oct:"ok",Nov:"best",Dec:"best" },
+    weather: "Tropical. Nov-Feb: 22-32°C ideal. Mar-May: 28-38°C hot. Jun-Sep: 26-32°C with monsoon rains.",
+    image: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800"
+  },
+
+  "Marina Beach": {
+    rating: 4.3, entry: "Free", duration: "2-3 hrs", type: "Beach",
+    highlights: ["World 2nd longest urban beach","13km of coastline","Sunrise photography heaven","Street food paradise","Historic statues and landmarks"],
+    safety: { level: "Moderate", score: 68, desc: "Generally safe during the day. Exercise caution at night and during crowded evenings. Keep valuables secure.",
+      bars: [["Daytime Safety","80"],["Night Safety","50"],["Swimming Safety","40"],["Crowd Control","65"]],
+      warnings: ["Swimming is DANGEROUS — strong riptides kill every year","Do not swim here","Busy evenings attract petty thieves","Avoid beach after 9pm","Be aware of your belongings in crowds"],
+      positives: ["Police patrolling during day","Well-lit main promenade","Many food stalls keep it lively","Easy access to auto-rickshaws"] },
+    pros: ["Free and open all day","Great street food scene","Beautiful sunrise photography","Historic statues worth seeing","Lively and vibrant atmosphere"],
+    cons: ["Swimming is extremely dangerous — riptides","Polluted water — not swimmable","Crowded and noisy evenings","Litter is a problem","No facilities for changing/shower"],
+    verdict: "Worth visiting for the atmosphere, sunrise photos, and street food — but absolutely do NOT swim here. Riptides claim lives every year. Enjoy from the shore only.",
+    culture: { desc: "Marina Beach is the soul of Chennai — a democratic public space where fishermen land their catch at dawn, families stroll at sunset, cricket matches happen on the sand, and political rallies draw millions. It is an open-air museum of Chennai life.",
+      tags: ["Chennai Culture","Fishermen Community","Tamil Heritage","Political History","Street Food Culture"],
+      food: ["Sundal (spiced chickpea) is iconic","Murukku and other fried snacks","Fresh corn on the cob","Bajji (battered vegetables)","Kothu Parotta nearby streets"],
+      etiquette: "Respect the fishing community hauling nets at dawn. Do not litter — there are bins available. Modest dress is appreciated. Photography of fishermen — always ask permission first." },
+    tips: ["Visit between 5:30-7am for stunning sunrise and empty beach","Fishermen return with catch at dawn — great photography","Try sundal and other evening snacks","Avoid Sundays and holidays — extremely crowded","Walk north toward the lighthouse for fewer crowds","The aquarium near the beach is worth a visit","Take an auto from T Nagar — about ₹100"],
+    howToGet: ["Chennai Central station is 5km away","Chennai Airport is 20km away","Bus: Many routes pass nearby","Auto-rickshaw: Easy to find throughout city"],
+    budget: ["Completely free to visit","Street food: ₹20-100 per item","Nearby restaurants: ₹200-600/meal","Auto from city center: ₹80-150"],
+    bestTimeDesc: "November to February is ideal — cool weather and clear skies. Avoid April-June when it's extremely hot. Monsoon (Oct-Dec) brings heavy rains.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"bad",Jun:"ok",Jul:"ok",Aug:"ok",Sep:"ok",Oct:"ok",Nov:"best",Dec:"best" },
+    weather: "Hot and humid year-round. Nov-Feb: 20-30°C pleasant. Mar-Jun: 30-42°C very hot. Oct-Dec: monsoon season.",
+    image: "https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=800"
+  },
+
+  "French Quarter Pondicherry": {
+    rating: 4.7, entry: "Free", duration: "Half to full day", type: "Heritage",
+    highlights: ["Colonial French architecture","Bougainvillea-lined streets","Seaside promenade","Art galleries and cafes","Vibrant nightlife"],
+    safety: { level: "Safe", score: 87, desc: "Extremely safe and tourist-friendly. One of the safest tourist zones in South India. Very well-maintained and policed.",
+      bars: [["Tourist Safety","90"],["Night Safety","82"],["Traffic Safety","80"],["Crime Rate","92"]],
+      warnings: ["Cycling can be dangerous on narrow streets","Some streets flood during monsoon","Overpriced restaurants in tourist areas","Motorbike rental requires valid license"],
+      positives: ["Very safe for solo female travelers","Tourist-friendly locals","Well-lit streets at night","Dedicated tourist police"] },
+    pros: ["Unique French-Indian culture","Beautiful colonial architecture","Excellent cafe and restaurant scene","Cycling-friendly streets","Relaxed and peaceful vibe"],
+    cons: ["Can feel touristy and pricey","Limited nightlife compared to Goa","Small area — explored in 1 day","Monsoon flooding in some areas","Weekend crowds can be heavy"],
+    verdict: "One of India's most charming destinations — like stepping into a French village with Indian spices. Perfect for a slow 2-day cultural retreat.",
+    culture: { desc: "Pondicherry (officially Puducherry) was a French colony until 1954 and retains an extraordinary Franco-Tamil character. The White Town (Ville Blanche) and Tamil Town (Ville Noire) exist side-by-side, creating a unique dual heritage found nowhere else in India.",
+      tags: ["French Colonial Heritage","Tamil Culture","Sri Aurobindo Ashram","Auroville","Franco-Tamil Fusion"],
+      food: ["Villa Shanti for French Creole","Surguru for authentic South Indian","Le Cafe for croissants by the sea","Gato Negro for French patisserie","Local kothu parotta in Tamil streets"],
+      etiquette: "The ashram area requires modest dress and silence. French Quarter restaurants are more formal — dress well. Ask before photographing ashram devotees. Auroville visitors must book in advance." },
+    tips: ["Rent a bicycle — best way to explore","Start with a sunrise walk on the promenade","Visit Sri Aurobindo Ashram early morning","Day trip to Auroville (5km away)","Evening cafe-hopping on Rue Suffren","Visit Chunnambar boat house for a lagoon day trip","Book accommodation on French Quarter streets for ambience"],
+    howToGet: ["Chennai to Pondy: Bus (3 hrs, ₹150) or car","Nearest airport: Chennai (160km)","Train: Villupuram station (38km) then bus","Direct AC buses from Chennai every hour"],
+    budget: ["Budget: ₹1200-2000/day (guesthouse + local food)","Mid: ₹3000-6000/day (boutique hotel)","Luxury: ₹8000-20000/day (heritage hotel)","Bicycle rental: ₹100-200/day"],
+    bestTimeDesc: "October to March is perfect. Avoid monsoon (Oct-Dec) for flooding risk. Summer (Apr-Jun) is hot but manageable with sea breeze.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"ok",Jun:"ok",Jul:"ok",Aug:"ok",Sep:"ok",Oct:"ok",Nov:"best",Dec:"best" },
+    weather: "Tropical. Oct-Feb: 20-30°C ideal. Mar-Jun: 28-38°C hot. Oct-Dec: North-East monsoon brings significant rainfall.",
+    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800"
+  },
+
+  "Ooty Botanical Gardens": {
+    rating: 4.5, entry: "₹30 adults", duration: "2-3 hrs", type: "Mountain",
+    highlights: ["650+ plant species","20 million year old fossil tree","Italian-style terraced gardens","Annual Flower Show in May","Panoramic Nilgiris views"],
+    safety: { level: "Safe", score: 84, desc: "Very safe and well-maintained government property. Ideal for families and senior citizens.",
+      bars: [["Security","85"],["Path Safety","90"],["Medical Access","70"],["Wildlife Safety","88"]],
+      warnings: ["Slippery paths during rain","Very cold in winter mornings","Altitude sickness possible for some","Crowded during summer holidays"],
+      positives: ["Well-maintained pathways","Security guards throughout","Clean and well-lit","Family-friendly environment"] },
+    pros: ["Stunning natural beauty","Educational for all ages","Well-maintained and clean","Moderate entry fee","Famous fossil tree is unique"],
+    cons: ["Crowded during peak season","Limited food inside","Takes 2-3 hours minimum","Photography sometimes restricted"],
+    verdict: "A must-visit in Ooty — beautifully maintained gardens with rare plants and the fascinating fossil tree. Best visited on a weekday morning.",
+    culture: { desc: "The Government Botanical Gardens were established in 1848 by the Marquis of Tweeddale. They represent the colonial-era tradition of botanical classification and are a testament to the natural wealth of the Nilgiris ecosystem, which is a UNESCO Biosphere Reserve.",
+      tags: ["British Colonial Heritage","Nilgiris Ecosystem","Botanical Science","UNESCO Biosphere","Flower Festival"],
+      food: ["Garden cafe inside for snacks","Ooty chocolate shops nearby","Varkey (local bread) with butter","Hot chai from roadside stalls"],
+      etiquette: "Do not pluck flowers or plants. Keep paths clean. No picnics on the flower beds. Respect the fossil tree area — no touching. Be quiet near the bird area." },
+    tips: ["Visit on Tuesday-Thursday to avoid weekend crowds","Carry a light jacket — it's cool even in summer","The Annual Flower Show (May) is spectacular but very crowded","Take the toy train from Mettupalayam to Ooty for a scenic journey","Photography permitted with permit","Visit early morning for the best light and fewest people","Combine with a visit to Doddabetta Peak (10km away)"],
+    howToGet: ["Nearest airport: Coimbatore (86km, 2.5 hrs)","Toy Train from Mettupalayam (UNESCO Heritage train, 5 hrs)","Bus from Coimbatore: 2.5 hrs","Car from Coimbatore: 2-2.5 hrs via Mettupalayam"],
+    budget: ["Budget: ₹1000-2000/day (basic homestay)","Mid: ₹3000-6000/day","Entry: ₹30/adult, ₹15/child","Toy train: ₹35-530 depending on class"],
+    bestTimeDesc: "April to June and September to November are ideal. Winters (Dec-Feb) are very cold (0-10°C) but beautiful. Avoid monsoon for slippery paths.",
+    months: { Jan:"ok",Feb:"ok",Mar:"best",Apr:"best",May:"best",Jun:"ok",Jul:"ok",Aug:"ok",Sep:"best",Oct:"best",Nov:"best",Dec:"ok" },
+    weather: "Cool year-round. Apr-Jun: 15-25°C ideal. Dec-Feb: 5-18°C cold. Jul-Sep: 15-22°C with mist and rain.",
+    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"
+  },
+
+  "Varanasi Ghats": {
+    rating: 4.8, entry: "Free", duration: "Full day", type: "Spiritual",
+    highlights: ["80 ancient ghats","Ganga Aarti ceremony","Oldest living city in the world","Sunrise boat ride","Kashi Vishwanath Temple nearby"],
+    safety: { level: "Moderate", score: 62, desc: "Spiritually powerful but requires some caution. Generally safe during day. Stick to main ghats and avoid dark alleys at night.",
+      bars: [["Day Safety","75"],["Night Safety","50"],["Water Safety","40"],["Tourist Police","65"]],
+      warnings: ["Do not swim in the Ganga — heavily polluted","Avoid dark narrow alleys at night","Beware of scams near ghats (boat, guide scams)","Keep valuables in hotel safe","Aggressive touts near Dashashwamedh Ghat"],
+      positives: ["Tourist police patrol main ghats","Well-lit main areas","Boat rides are generally safe","Many reputable hotels nearby"] },
+    pros: ["Unparalleled spiritual atmosphere","Unique Ganga Aarti ceremony","Ancient history at every corner","Vibrant street food scene","Boat rides at sunrise are magical"],
+    cons: ["Heavily polluted Ganga river","Aggressive touts and scammers","Narrow lanes can be confusing","Strong smells near cremation ghats","Extreme crowds during festivals"],
+    verdict: "One of the most profound and unforgettable experiences in India. The Ganga Aarti at Dashashwamedh Ghat is among the most moving ceremonies on earth. Go with an open mind and respect.",
+    culture: { desc: "Varanasi (Kashi) is one of the oldest continuously inhabited cities on earth — at least 3,000 years old. It is the spiritual capital of Hinduism, where Hindus believe dying here grants moksha (liberation from the cycle of rebirth). Every stone, every ghat, every lane carries centuries of spiritual history.",
+      tags: ["Hindu Spirituality","Ganga River","Cremation Tradition","Silk Weaving","Classical Music"],
+      food: ["Malaiyo (winter fog dessert) is unique to Varanasi","Baati Chokha (traditional dish)","Chaat at Kashi Chat Bhandar","Lassi at Blue Lassi Shop (100 years old)","Malabar paratha near ghats"],
+      etiquette: "Dress very modestly near temples and ghats. Do not point feet at the river or temples. Photography at Manikarnika (cremation) ghat requires sensitivity — ask permission. Attend Ganga Aarti with reverence — it is a living religious ceremony. Do not bargain aggressively near temples." },
+    tips: ["Sunrise boat ride on the Ganga is life-changing (5:30am)","Book your boat in advance at hotel — avoid ghat touts","Evening Ganga Aarti at Dashashwamedh Ghat at 7pm","Hire a local guide through hotel for lanes navigation","Visit Sarnath (10km away) — Buddha gave first sermon here","Kashi Vishwanath Temple corridor is newly expanded","Silk shopping in the lanes is excellent — bargain hard","Try the famous Varanasi lassi"],
+    howToGet: ["Varanasi airport (VNS) has flights from Delhi, Mumbai","Train: Varanasi Junction has trains from all major cities","The ghats are walkable from most hotels"],
+    budget: ["Budget: ₹800-1500/day","Mid: ₹2500-5000/day","Boat ride: ₹300-600/hr (negotiate firmly)","Ganga Aarti: Free to attend"],
+    bestTimeDesc: "October to March is best. Winter fog (Dec-Feb) creates mystical atmosphere. Avoid summer (Apr-Jun) — extreme heat. Dev Deepawali (Kartik Purnima) in November is spectacular.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"bad",Jun:"bad",Jul:"ok",Aug:"ok",Sep:"ok",Oct:"best",Nov:"best",Dec:"best" },
+    weather: "Oct-Feb: 10-25°C with fog, very pleasant. Mar-Jun: 25-45°C very hot. Jul-Sep: 28-38°C with heavy monsoon rains.",
+    image: "https://images.unsplash.com/photo-1561361058-c24e15abd4cf?w=800"
+  },
+
+  "Kanyakumari Sunrise Point": {
+    rating: 4.6, entry: "Free", duration: "Half day", type: "Spiritual",
+    highlights: ["3 seas meet here","Watch sunrise AND sunset over the sea","Swami Vivekananda Rock Memorial","Thiruvalluvar statue","Southernmost tip of India"],
+    safety: { level: "Safe", score: 83, desc: "Well-maintained tourist destination with good facilities. Safe for all types of travelers including solo women and families.",
+      bars: [["Tourist Safety","85"],["Crowd Safety","78"],["Water Safety","80"],["Medical Access","75"]],
+      warnings: ["Ferry can be rough in monsoon","Extremely crowded during sunrise","Rock Memorial may be closed on Tuesdays","Strong waves on the rocks — be careful"],
+      positives: ["Well-patrolled tourist area","Ferry service is regulated","Good CCTV coverage","Tourist information center on-site"] },
+    pros: ["Truly unique geographical experience","Beautiful sunrises and sunsets","Spiritually significant location","Clean and well-maintained","Ferry ride to Vivekananda Rock is memorable"],
+    cons: ["Extremely crowded especially at sunrise","Limited accommodation options","Very touristy souvenir market","Gets crowded quickly after sunrise","Hot and sunny afternoons"],
+    verdict: "A genuinely moving experience — standing at the very tip of India where three seas meet is something you will never forget. Arrive before 5am for a good spot.",
+    culture: { desc: "Kanyakumari (Cape Comorin) has been a sacred place for millennia — where Goddess Kanyakumari (a form of Parvati) is said to have stood on one leg in penance. Swami Vivekananda meditated on the rock here in 1892 before going to the Chicago Parliament of Religions.",
+      tags: ["Cape Comorin","Vivekananda Heritage","Hindu Pilgrimage","3 Oceans Junction","Tamil Culture"],
+      food: ["Famous Kanyakumari fish curry","Coconut-based seafood dishes","Try local Kothu Parotta","Fresh fruit juices by the shore"],
+      etiquette: "Dress modestly near the Kanyakumari temple (no shorts, sleeveless for women inside). The temple has strict dress code. Be respectful at the Vivekananda Rock. No littering near the shore — fines apply." },
+    tips: ["Arrive by 5am for sunrise viewing spot","Pre-book ferry tickets online to avoid long queues","The Thiruvalluvar statue is closed some days — check","Sunset from the Gandhi Memorial is beautiful","Evening light show at the statue is worth watching","The Padmanabhapuram Palace (55km) is a must-visit add-on","Stay the night for both sunrise AND sunset"],
+    howToGet: ["Nearest airport: Trivandrum (87km, 1.5 hrs)","Train: Kanyakumari has its own railway station","Bus: Regular buses from Madurai (3.5 hrs) and Trivandrum (2 hrs)"],
+    budget: ["Budget: ₹800-1500/day (guesthouse)","Mid: ₹2000-4000/day","Ferry to Rock Memorial: ₹34","Sunset/Sunrise: Free"],
+    bestTimeDesc: "October to February is ideal. Monsoon (June-August) makes ferry service irregular. December-January is peak season — book accommodation early.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"ok",Jun:"bad",Jul:"bad",Aug:"bad",Sep:"ok",Oct:"best",Nov:"best",Dec:"best" },
+    weather: "Tropical. Oct-Feb: 22-32°C pleasant. Mar-May: 28-36°C hot. Jun-Sep: 26-32°C monsoon with rough seas.",
+    image: "https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=800"
+  },
+
+  "Amber Fort": {
+    rating: 4.8, entry: "₹200 Indians, ₹500 foreigners", duration: "2-3 hrs", type: "Heritage",
+    highlights: ["Hilltop fortress with lake views","Sheesh Mahal (mirror palace)","Light & sound show at night","Elephant ride to the top","Blend of Hindu-Mughal architecture"],
+    safety: { level: "Safe", score: 84, desc: "Well-secured heritage site. Tourist Police present. Generally safe but watch out for overcharging by unofficial guides.",
+      bars: [["Security","88"],["Crowd Management","80"],["Lighting","85"],["Medical Access","70"]],
+      warnings: ["Elephant rides — animal welfare concerns, consider avoiding","Unofficial guides will overcharge","Very hot in summer — carry water","Steep steps — not ideal for elderly"],
+      positives: ["Dedicated tourist police","Multiple entry checkpoints","Audio guide available","Well-maintained ASI property"] },
+    pros: ["Spectacular architecture","Breathtaking hilltop views","Multiple palaces within complex","Evening light show is stunning","Well-preserved"],
+    cons: ["Very crowded on weekends","Steep climb without elephant","Hot in summer","Overpricing by guides and vendors","Elephant rides raise animal welfare concerns"],
+    verdict: "One of Rajasthan's finest forts — the Sheesh Mahal alone is worth the visit. Come early morning to beat the heat and crowds and see the palace glow in golden light.",
+    culture: { desc: "Amber Fort was built in 1592 by Raja Man Singh I and expanded by successive Kachhwaha rulers. It represents the pinnacle of Rajput architecture with its blend of Hindu and Mughal elements. It was the capital of the Kachhwaha Rajputs before Jaipur was built in 1727.",
+      tags: ["Rajput Architecture","Mughal Influence","Kachhwaha Dynasty","Rajasthan Heritage","Fortress Culture"],
+      food: ["Rajasthani thali at nearby Amber restaurants","Dal Baati Churma is a must-try","Mawa Kachori (sweet snack)","Lassi in old clay pots"],
+      etiquette: "Remove shoes at temple areas inside the fort. Photography allowed in most areas. Be firm but polite with touts. Dress modestly. Do not feed the elephants." },
+    tips: ["Take a jeep up (₹200 return) instead of elephant","Visit on weekdays for fewer crowds","The Jai Mandir (Hall of Victory) is a highlight","Light and Sound show at 7:30pm in winter","Book audio guide for historical context","Combine with Jaigarh Fort (connected by tunnel)","Go very early morning — 8am opening is best"],
+    howToGet: ["Jaipur Airport is 30km from Amber","Train: Jaipur Junction (12km)","Auto/taxi from Jaipur city: ₹300-500","Bus from Jaipur: ₹15 (very crowded)"],
+    budget: ["Budget: ₹1000-2000/day in Jaipur","Mid: ₹3000-6000/day","Entry: ₹200 (Indians), ₹500 (foreigners)","Jeep to fort: ₹200 return"],
+    bestTimeDesc: "October to February is perfect. Summers (May-Jun) are brutal — 45°C. Monsoon brings dramatic skies but can be humid.",
+    months: { Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"bad",Jun:"bad",Jul:"ok",Aug:"ok",Sep:"ok",Oct:"best",Nov:"best",Dec:"best" },
+    weather: "Desert climate. Oct-Feb: 8-25°C ideal. Mar-Apr: 25-40°C warm. May-Jun: 35-47°C very hot. Jul-Sep: 28-38°C with some rain.",
+    image: "https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800"
+  }
+};
+
+// Default data for places not in PLACE_DETAILS
+function getDefaultDetails(name, category, location, description) {
+  const safetyByCategory = {
+    Beach:    { level:"Moderate", score:72 },
+    Mountain: { level:"Moderate", score:70 },
+    Heritage: { level:"Safe",     score:82 },
+    City:     { level:"Moderate", score:68 },
+    Wildlife: { level:"Moderate", score:65 },
+    Spiritual:{ level:"Safe",     score:80 },
+  };
+  const s = safetyByCategory[category] || { level:"Moderate", score:70 };
+  return {
+    rating:4.2, entry:"Varies", duration:"2-4 hrs", type:category,
+    highlights:["Beautiful natural/cultural attraction","Popular with tourists","Rich history and culture","Great photography opportunities","Worth a visit"],
+    safety:{ level:s.level, score:s.score,
+      desc:"Typical safety for this type of destination. Exercise standard precautions.",
+      bars:[["Overall Safety",String(s.score)],["Tourist Infrastructure","70"],["Medical Access","65"],["Crowd Management","72"]],
+      warnings:["Keep valuables secure","Verify guide credentials","Carry water and sunscreen","Check local conditions before visiting"],
+      positives:["Generally safe for tourists","Local police presence","Well-visited area","Tourist infrastructure present"] },
+    pros:["Unique destination worth visiting","Rich cultural or natural value","Good photography opportunities","Accessible from major cities","Memorable experience"],
+    cons:["May be crowded in peak season","Limited facilities in some areas","Travel time may be significant","Check for seasonal closures"],
+    verdict:"A destination worth adding to your India itinerary. Do your research for the specific season and plan accordingly for the best experience.",
+    culture:{ desc:"This destination has a rich cultural and historical significance deeply embedded in the local community and Indian heritage.",
+      tags:["Indian Heritage","Local Culture","Natural Beauty","Tourism","Historical Significance"],
+      food:["Try local street food","Sample regional cuisine","Fresh seasonal produce","Authentic local dishes"],
+      etiquette:"Dress modestly at religious sites. Always ask before photographing locals. Remove shoes at temples and mosques. Avoid plastic and waste." },
+    tips:["Visit early morning for best experience","Book accommodation in advance for peak season","Hire a certified local guide","Carry sufficient cash","Bring sunscreen and water"],
+    howToGet:["Check nearest airport and railway station","Local buses are most economical","Auto-rickshaws available at major junctions","Taxis can be booked in advance"],
+    budget:["Budget: ₹800-1500/day","Mid: ₹2000-4000/day","Entry fee: Check official website","Local transport: ₹100-300"],
+    bestTimeDesc:"October to March is generally the best time to visit most of India. Check local climate for specific recommendations.",
+    months:{ Jan:"best",Feb:"best",Mar:"best",Apr:"ok",May:"bad",Jun:"bad",Jul:"ok",Aug:"ok",Sep:"ok",Oct:"best",Nov:"best",Dec:"best" },
+    weather:"Varies by location. Generally pleasant Oct-Feb, hot Mar-Jun, monsoon Jul-Sep.",
+    image:""
+  };
+}
+
+// ── OPEN MODAL ────────────────────────────
+function openDetail(name) {
+  // Find the place card to get its data
+  let placeImg   = "";
+  let placeLoc   = "";
+  let placeCat   = "";
+  let placeDesc  = "";
+
+  document.querySelectorAll('.place-col').forEach(col => {
+    const h5 = col.querySelector('h5');
+    if (h5 && h5.textContent.trim() === name) {
+      const img = col.querySelector('img');
+      const loc = col.querySelector('.card-location');
+      const cat = col.querySelector('.card-img-overlay-badge');
+      const desc= col.querySelector('.card-desc');
+      if (img)  placeImg  = img.src;
+      if (loc)  placeLoc  = loc.textContent.replace('📍','').trim();
+      if (cat)  placeCat  = cat.textContent.trim();
+      if (desc) placeDesc = desc.textContent.trim();
+    }
+  });
+
+  const d = PLACE_DETAILS[name] || getDefaultDetails(name, placeCat, placeLoc, placeDesc);
+
+  // Set hero
+  const heroImg = d.image || placeImg;
+  document.getElementById('mHeroImg').src = heroImg;
+  document.getElementById('mName').textContent     = name;
+  document.getElementById('mLocation').textContent = '📍 ' + placeLoc;
+  document.getElementById('mCategory').textContent = placeCat;
+
+  // Overview
+  document.getElementById('mDesc').textContent = placeDesc || d.culture.desc;
+  document.getElementById('mEntry').textContent    = d.entry;
+  document.getElementById('mDuration').textContent = d.duration;
+  document.getElementById('mType').textContent     = d.type;
+
+  // Rating stars
+  let stars = '';
+  for (let i=1;i<=5;i++) stars += i <= Math.floor(d.rating) ? '<span class="star-filled">★</span>' : '<span class="star-empty">★</span>';
+  document.getElementById('mRatingStars').innerHTML = stars + ` <span style="font-size:0.8rem;color:var(--text-mid)">${d.rating}/5</span>`;
+
+  // Highlights
+  document.getElementById('mHighlights').innerHTML = d.highlights.map(h =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:0.88rem;color:var(--text-dark);border-bottom:1px solid rgba(13,79,92,0.05)">
+      <span style="color:var(--amber);font-size:0.9rem">✦</span>${h}</div>`
+  ).join('');
+
+  // Navigation buttons
+  document.getElementById('mNavBtn').href   = `/routes?to=${encodeURIComponent(placeLoc)}`;
+  document.getElementById('mGmapsBtn').href = `https://www.google.com/maps/search/${encodeURIComponent(name)}+${encodeURIComponent(placeLoc)}`;
+
+  // Safety
+  const sl = d.safety.level;
+  const sc = d.safety.score;
+  const slClass = sl === 'Safe' ? 'sl-safe' : sl === 'Moderate' ? 'sl-moderate' : 'sl-caution';
+  const slDot   = sl === 'Safe' ? '🟢' : sl === 'Moderate' ? '🟡' : '🔴';
+  document.getElementById('mSafetyBadge').innerHTML =
+    `<span class="safety-level ${slClass}">${slDot} ${sl} (${sc}/100)</span>`;
+  document.getElementById('mSafetyDesc').textContent = d.safety.desc;
+
+  document.getElementById('mSafetyBars').innerHTML = d.safety.bars.map(([label, val]) => {
+    const color = parseInt(val) >= 75 ? '#1DB954' : parseInt(val) >= 50 ? '#F2A93B' : '#E53935';
+    return `<div style="margin-bottom:0.8rem">
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px">
+        <span style="color:var(--text-mid)">${label}</span>
+        <span style="font-weight:700;color:${color}">${val}/100</span>
+      </div>
+      <div class="safety-meter"><div class="safety-meter-fill" style="width:${val}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('mWarnings').innerHTML = d.safety.warnings.map(w =>
+    `<div class="con-item"><span class="con-dot">⚠️</span>${w}</div>`).join('');
+
+  document.getElementById('mSafetyPos').innerHTML = d.safety.positives.map(p =>
+    `<div class="pro-item"><span class="pro-dot">✅</span>${p}</div>`).join('');
+
+  // Pros & Cons
+  document.getElementById('mPros').innerHTML = d.pros.map(p =>
+    `<div class="pro-item"><span class="pro-dot">✅</span>${p}</div>`).join('');
+  document.getElementById('mCons').innerHTML = d.cons.map(c =>
+    `<div class="con-item"><span class="con-dot">❌</span>${c}</div>`).join('');
+  document.getElementById('mVerdict').textContent = d.verdict;
+
+  // Culture
+  document.getElementById('mCultureDesc').textContent = d.culture.desc;
+  document.getElementById('mCultureTags').innerHTML = d.culture.tags.map(t =>
+    `<span class="culture-tag">🎭 ${t}</span>`).join('');
+  document.getElementById('mFood').innerHTML = d.culture.food.map(f =>
+    `<div class="pro-item"><span style="color:var(--amber);font-size:0.9rem">🍽️</span>${f}</div>`).join('');
+  document.getElementById('mEtiquette').textContent = d.culture.etiquette;
+
+  // Tips
+  document.getElementById('mTips').innerHTML = d.tips.map(t =>
+    `<div class="tip-box">💡 ${t}</div>`).join('');
+  document.getElementById('mHowToGet').innerHTML = d.howToGet.map(h =>
+    `<div class="pro-item"><span style="color:var(--teal);font-size:0.9rem">🚌</span>${h}</div>`).join('');
+  document.getElementById('mBudget').innerHTML = d.budget.map(b =>
+    `<span class="info-chip">💰 ${b}</span>`).join('');
+
+  // Best Time
+  document.getElementById('mBestTimeDesc').textContent = d.bestTimeDesc;
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('mMonths').innerHTML =
+    `<div style="display:flex;flex-wrap:wrap;gap:4px">` +
+    monthNames.map(m => {
+      const cls = d.months[m] === 'best' ? 'month-best' : d.months[m] === 'ok' ? 'month-ok' : 'month-bad';
+      const icon= d.months[m] === 'best' ? '✅' : d.months[m] === 'ok' ? '⚠️' : '❌';
+      return `<span class="month-pill ${cls}">${icon} ${m}</span>`;
+    }).join('') +
+    `</div>
+    <div style="display:flex;gap:1rem;margin-top:0.8rem;font-size:0.78rem;flex-wrap:wrap">
+      <span><span style="color:#1a7a40;font-weight:700">✅ Best time</span></span>
+      <span><span style="color:#b07010;font-weight:700">⚠️ Acceptable</span></span>
+      <span><span style="color:#c02020;font-weight:700">❌ Avoid</span></span>
+    </div>`;
+
+  document.getElementById('mWeather').innerHTML =
+    `<div style="background:rgba(13,79,92,0.05);border-radius:12px;padding:1rem;font-size:0.88rem;color:var(--text-mid);line-height:1.8">${d.weather}</div>`;
+
+  // Reset to first tab
+  switchTab('overview', document.querySelector('.modal-tab'));
+
+  // Open modal
+  document.getElementById('detailOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Animate safety bars
+  setTimeout(() => {
+    document.querySelectorAll('.safety-meter-fill').forEach(bar => {
+      const w = bar.style.width;
+      bar.style.width = '0%';
+      setTimeout(() => bar.style.width = w, 100);
+    });
+  }, 300);
+}
+
+// ── CLOSE MODAL ───────────────────────────
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeDetailOutside(e) {
+  if (e.target === document.getElementById('detailOverlay')) closeDetail();
+}
+
+// ── TABS ──────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  // Scroll modal body to top when switching tabs
+  document.querySelector('.modal-body-scroll').scrollTop = 0;
+}
+
+// ── FILTER ────────────────────────────────
+function filterCat(btn, cat) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.place-col').forEach(col => {
+    col.style.display = (!cat || col.dataset.category === cat) ? '' : 'none';
+  });
+}
+
+// ── ESC KEY ───────────────────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+// ── CARD HOVER HINT ───────────────────────
+document.querySelectorAll('.dest-card').forEach(card => {
+  card.addEventListener('mouseenter', () => {
+    const hint = card.querySelector('.card-hover-hint');
+    if (hint) hint.style.opacity = '1';
+  });
+  card.addEventListener('mouseleave', () => {
+    const hint = card.querySelector('.card-hover-hint');
+    if (hint) hint.style.opacity = '0';
+  });
+});
+</script>
+</body>
+</html>

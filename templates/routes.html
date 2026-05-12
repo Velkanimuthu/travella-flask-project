@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route Navigation — Travella</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  html, body { height: 100%; overflow: hidden; }
+
+  #map-wrapper {
+    position: fixed;
+    top: 72px; left: 0; right: 0; bottom: 0;
+    z-index: 1;
+  }
+
+  #mapFrame {
+    width: 100%; height: 100%;
+    border: 0; display: block;
+  }
+
+  /* SEARCH PANEL */
+  .search-panel {
+    position: absolute;
+    top: 16px; left: 16px;
+    width: 330px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    background: linear-gradient(135deg, #082F38, #0D4F5C);
+    padding: 1rem 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-header span {
+    color: white;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .quick-btn {
+    background: rgba(242,169,59,0.25);
+    border: 1px solid rgba(242,169,59,0.5);
+    border-radius: 8px;
+    padding: 3px 10px;
+    color: #F2A93B;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .panel-body { padding: 1rem 1.1rem; }
+
+  /* inputs */
+  .loc-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .loc-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-start { background: #4285F4; box-shadow: 0 0 0 3px rgba(66,133,244,0.2); }
+  .dot-end   { background: #E53935; box-shadow: 0 0 0 3px rgba(229,57,53,0.2); }
+
+  .loc-input {
+    flex: 1;
+    border: 1.5px solid rgba(13,79,92,0.15);
+    border-radius: 10px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.86rem;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: all 0.25s;
+    background: #f6f8f9;
+    color: #1A1A2E;
+  }
+
+  .loc-input:focus {
+    border-color: #0D4F5C;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(13,79,92,0.08);
+  }
+
+  .gps-pick-btn {
+    background: rgba(66,133,244,0.1);
+    border: none;
+    border-radius: 8px;
+    padding: 5px 7px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .gps-pick-btn:hover { background: rgba(66,133,244,0.25); }
+
+  .swap-row {
+    text-align: center;
+    margin: 2px 0 6px;
+  }
+
+  .swap-btn {
+    background: none;
+    border: 1.5px solid rgba(13,79,92,0.2);
+    border-radius: 8px;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    line-height: 1;
+  }
+  .swap-btn:hover { background: #0D4F5C; color: white; border-color: #0D4F5C; }
+
+  /* mode pills */
+  .mode-row {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+
+  .mpill {
+    flex: 1;
+    border: 1.5px solid rgba(13,79,92,0.15);
+    background: white;
+    border-radius: 20px;
+    padding: 0.3rem 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .mpill.active, .mpill:hover { background: #0D4F5C; color: white; border-color: #0D4F5C; }
+
+  /* go button */
+  .go-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #F2A93B, #F7C470);
+    color: #1A1A2E;
+    border: none;
+    border-radius: 12px;
+    padding: 0.7rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .go-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(242,169,59,0.4); }
+
+  /* route info */
+  .route-info-row {
+    display: none;
+    margin-top: 10px;
+    background: rgba(13,79,92,0.05);
+    border-radius: 10px;
+    padding: 0.7rem;
+    border: 1px solid rgba(13,79,92,0.1);
+  }
+  .route-info-row.show { display: flex; align-items: center; justify-content: space-around; }
+
+  .rstat { text-align: center; }
+  .rstat-val { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 700; color: #0D4F5C; display: block; }
+  .rstat-lbl { font-size: 0.68rem; color: #8A8AAA; text-transform: uppercase; letter-spacing: 1px; display: block; margin-top: 2px; }
+  .rdiv { width: 1px; background: rgba(13,79,92,0.15); height: 36px; }
+
+  /* quick routes dropdown */
+  .quick-routes {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(13,79,92,0.08);
+  }
+  .quick-routes.show { display: block; }
+  .qr-label { font-size: 0.68rem; font-weight: 700; color: #8A8AAA; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+
+  .qr-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+  }
+  .qr-item:hover { background: rgba(13,79,92,0.06); }
+  .qr-name { font-weight: 600; color: #1A1A2E; }
+  .qr-sub  { font-size: 0.72rem; color: #8A8AAA; }
+
+  /* STATUS BAR */
+  .status-bar {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 6px 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 100;
+    font-size: 0.8rem;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 200px;
+  }
+
+  .gps-led { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+  .gps-led.on { background: #1DB954; animation: blink 1.5s infinite; }
+  .gps-led.tracking { background: #4285F4; animation: blink 0.8s infinite; }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  /* RIGHT CONTROLS */
+  .right-controls {
+    position: absolute;
+    right: 16px;
+    bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 100;
+  }
+
+  .ctrl-btn {
+    width: 44px; height: 44px;
+    background: white;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+    cursor: pointer;
+    font-size: 1.15rem;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ctrl-btn:hover { background: #0D4F5C; color: white; transform: scale(1.05); }
+  .ctrl-btn.track-on { background: #4285F4; color: white; animation: pulse-loc 1.5s infinite; }
+
+  @keyframes pulse-loc {
+    0%,100% { box-shadow: 0 0 0 0 rgba(66,133,244,0.5); }
+    50%      { box-shadow: 0 0 0 10px rgba(66,133,244,0); }
+  }
+
+  /* DIRECTIONS PANEL */
+  .dir-panel {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    width: 330px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.15);
+    z-index: 100;
+    max-height: 260px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .dir-panel.show { display: flex; }
+
+  .dir-head {
+    background: linear-gradient(135deg, #082F38, #0D4F5C);
+    padding: 0.7rem 1rem;
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'DM Sans', sans-serif;
+    flex-shrink: 0;
+  }
+
+  .dir-close {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    border-radius: 6px;
+    padding: 1px 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.82rem;
+  }
+
+  .dir-body { overflow-y: auto; flex: 1; }
+
+  .dir-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size: 0.8rem;
+    font-family: 'DM Sans', sans-serif;
+    color: #4A4A6A;
+  }
+  .dir-step:last-child { border-bottom: none; }
+  .dir-step:hover { background: rgba(13,79,92,0.03); }
+
+  /* MAP LOADING */
+  .map-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(8,47,56,0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .map-loading.show { display: flex; }
+
+  .map-spinner {
+    width: 42px; height: 42px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #F2A93B;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .search-panel { width: calc(100vw - 24px); left: 12px; top: 10px; }
+    .dir-panel    { width: calc(100vw - 24px); left: 12px; bottom: 10px; }
+    .status-bar   { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg fixed-top scrolled">
+  <div class="container">
+    <a class="navbar-brand" href="/">Travel<span>la</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/tourist-places">Destinations</a></li>
+        <li class="nav-item"><a class="nav-link" href="/travel-planner">🗓️ Planner</a></li>
+        <li class="nav-item"><a class="nav-link" href="/hotels">Hotels</a></li>
+        <li class="nav-item"><a class="nav-link" href="/restaurants">Restaurants</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/routes">Navigate</a></li>
+        <li class="nav-item"><a class="nav-link" href="/translator">Translator</a></li>
+        <li class="nav-item"><a class="nav-link" href="/vehicle-booking">Vehicles</a></li>
+        <li class="nav-item ms-2"><a class="nav-link nav-cta" href="/emergency">🆘 Emergency</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- FULLSCREEN MAP -->
+<div id="map-wrapper">
+
+  <!-- Google Map Iframe -->
+  <iframe id="mapFrame"
+    src="https://maps.google.com/maps?q=Tamil+Nadu+India&output=embed&z=7"
+    allowfullscreen loading="lazy">
+  </iframe>
+
+  <!-- Loading Overlay -->
+  <div class="map-loading" id="mapLoading">
+    <div class="map-spinner"></div>
+    <span style="color:white;font-size:0.9rem;font-weight:600;font-family:'DM Sans',sans-serif">Calculating route…</span>
+  </div>
+
+  <!-- ── SEARCH PANEL ── -->
+  <div class="search-panel">
+    <div class="panel-header">
+      <span>🗺️ Travella Navigate</span>
+      <button class="quick-btn" onclick="toggleQuick()">⚡ Quick Routes</button>
+    </div>
+    <div class="panel-body">
+
+      <!-- Quick Routes -->
+      <div class="quick-routes" id="quickRoutes">
+        <p class="qr-label">Popular Tamil Nadu Routes</p>
+        <div class="qr-item" onclick="go('Chennai','Pondicherry')"><span>🏖️</span><div><div class="qr-name">Chennai → Pondicherry</div><div class="qr-sub">~3 hrs · 160 km</div></div></div>
+        <div class="qr-item" onclick="go('Chennai','Mahabalipuram')"><span>🏛️</span><div><div class="qr-name">Chennai → Mahabalipuram</div><div class="qr-sub">~1.5 hrs · 58 km</div></div></div>
+        <div class="qr-item" onclick="go('Coimbatore','Ooty')"><span>⛰️</span><div><div class="qr-name">Coimbatore → Ooty</div><div class="qr-sub">~2.5 hrs · 86 km</div></div></div>
+        <div class="qr-item" onclick="go('Madurai','Rameswaram')"><span>🕌</span><div><div class="qr-name">Madurai → Rameswaram</div><div class="qr-sub">~3.5 hrs · 170 km</div></div></div>
+        <div class="qr-item" onclick="go('Chennai','Coimbatore')"><span>🚗</span><div><div class="qr-name">Chennai → Coimbatore</div><div class="qr-sub">~6 hrs · 494 km</div></div></div>
+        <div class="qr-item" onclick="go('Madurai','Kanyakumari')"><span>🌊</span><div><div class="qr-name">Madurai → Kanyakumari</div><div class="qr-sub">~3.5 hrs · 245 km</div></div></div>
+        <div class="qr-item" onclick="go('Thanjavur','Madurai')"><span>🏰</span><div><div class="qr-name">Thanjavur → Madurai</div><div class="qr-sub">~2.5 hrs · 144 km</div></div></div>
+        <div class="qr-item" onclick="go('Delhi','Agra')"><span>🕌</span><div><div class="qr-name">Delhi → Agra (Taj Mahal)</div><div class="qr-sub">~3 hrs · 233 km</div></div></div>
+      </div>
+
+      <!-- FROM -->
+      <div class="loc-row">
+        <div class="loc-dot dot-start"></div>
+        <input type="text" id="fromInput" class="loc-input" placeholder="From — city or place">
+        <button class="gps-pick-btn" onclick="useMyLocation()" title="Use my GPS location">📍</button>
+      </div>
+
+      <!-- SWAP -->
+      <div class="swap-row">
+        <button class="swap-btn" onclick="swapLocs()" title="Swap">⇅</button>
+      </div>
+
+      <!-- TO -->
+      <div class="loc-row">
+        <div class="loc-dot dot-end"></div>
+        <input type="text" id="toInput" class="loc-input" placeholder="To — destination">
+      </div>
+
+      <!-- MODE -->
+      <div class="mode-row">
+        <button class="mpill active" onclick="setMode('driving',this)">🚗 Drive</button>
+        <button class="mpill" onclick="setMode('transit',this)">🚌 Transit</button>
+        <button class="mpill" onclick="setMode('walking',this)">🚶 Walk</button>
+        <button class="mpill" onclick="setMode('bicycling',this)">🚲 Cycle</button>
+      </div>
+
+      <!-- GO -->
+      <button class="go-btn" onclick="getDirections()">🔍 &nbsp;Get Directions</button>
+
+      <!-- ROUTE STATS -->
+      <div class="route-info-row" id="routeInfo">
+        <div class="rstat"><span class="rstat-val" id="rDist">—</span><span class="rstat-lbl">Distance</span></div>
+        <div class="rdiv"></div>
+        <div class="rstat"><span class="rstat-val" id="rTime">—</span><span class="rstat-lbl">Duration</span></div>
+        <div class="rdiv"></div>
+        <div class="rstat"><span class="rstat-val" id="rMode">🚗</span><span class="rstat-lbl">Mode</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── STATUS BAR ── -->
+  <div class="status-bar">
+    <div class="gps-led" id="gpsLed"></div>
+    <span id="gpsText" style="color:#4A4A6A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Locating…</span>
+  </div>
+
+  <!-- ── RIGHT CONTROLS ── -->
+  <div class="right-controls">
+    <button class="ctrl-btn" onclick="zoomIn()"  title="Zoom In">+</button>
+    <button class="ctrl-btn" onclick="zoomOut()" title="Zoom Out">−</button>
+    <button class="ctrl-btn" id="trackBtn" onclick="toggleTracking()" title="Live GPS Tracking">📍</button>
+    <button class="ctrl-btn" onclick="centreOnMe()" title="Centre on my location">🎯</button>
+  </div>
+
+  <!-- ── DIRECTIONS PANEL ── -->
+  <div class="dir-panel" id="dirPanel">
+    <div class="dir-head">
+      <span id="dirTitle">Turn-by-turn Directions</span>
+      <button class="dir-close" onclick="document.getElementById('dirPanel').classList.remove('show')">✕ Close</button>
+    </div>
+    <div class="dir-body" id="dirBody"></div>
+  </div>
+
+</div><!-- end map-wrapper -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ════════════════════════════════════════
+//  TRAVELLA NAVIGATE — Real Distance & Duration
+//  Uses: Nominatim (geocoding) + OSRM (routing)
+//  Both are 100% FREE — no API key needed
+// ════════════════════════════════════════
+
+let mode      = 'driving';
+let tracking  = false;
+let watchId   = null;
+let zoom      = 12;
+let myLat     = null;
+let myLng     = null;
+let quickOpen = false;
+
+const modeEmoji = { driving:'🚗', transit:'🚌', walking:'🚶', bicycling:'🚲' };
+const modeChar  = { driving:'d',  transit:'r',  walking:'w',  bicycling:'b' };
+
+// OSRM profile names
+const osrmProfile = { driving:'driving', transit:'driving', walking:'foot', bicycling:'bike' };
+
+// ── ON LOAD ──────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(autoLocate, 600);
+  const p = new URLSearchParams(location.search);
+  if (p.get('from')) document.getElementById('fromInput').value = p.get('from');
+  if (p.get('to'))   document.getElementById('toInput').value   = p.get('to');
+  if (p.get('from') && p.get('to')) setTimeout(getDirections, 1200);
+});
+
+// ── AUTO LOCATE ──────────────────────────
+function autoLocate() {
+  if (!navigator.geolocation) { setStatus('GPS unavailable', ''); return; }
+  setStatus('Getting location…', '');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+      setStatus('GPS ready', 'on');
+      setMap(`https://maps.google.com/maps?q=${myLat},${myLng}&output=embed&z=${zoom}`);
+    },
+    () => setStatus('Allow location for GPS', ''),
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
+// ── USE MY LOCATION ──────────────────────
+function useMyLocation() {
+  if (myLat && myLng) {
+    document.getElementById('fromInput').value = myLat.toFixed(5) + ', ' + myLng.toFixed(5);
+    setStatus('Start set to your location', 'on');
+    return;
+  }
+  if (!navigator.geolocation) { alert('GPS not supported.'); return; }
+  setStatus('Getting GPS…', '');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      myLat = pos.coords.latitude;
+      myLng = pos.coords.longitude;
+      document.getElementById('fromInput').value = myLat.toFixed(5) + ', ' + myLng.toFixed(5);
+      setStatus('Current location set', 'on');
+    },
+    () => alert('Location access denied. Please enable in browser settings.')
+  );
+}
+
+// ── LIVE TRACKING ────────────────────────
+function toggleTracking() {
+  tracking = !tracking;
+  const btn = document.getElementById('trackBtn');
+  if (tracking) {
+    btn.classList.add('track-on');
+    btn.textContent = '🔵';
+    setStatus('Live tracking ON', 'tracking');
+    watchId = navigator.geolocation.watchPosition(
+      pos => {
+        myLat = pos.coords.latitude;
+        myLng = pos.coords.longitude;
+        const spd = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) + ' km/h' : '';
+        setStatus('Tracking' + (spd ? ' · ' + spd : ''), 'tracking');
+        setMap(`https://maps.google.com/maps?q=${myLat},${myLng}&output=embed&z=${zoom}`);
+      },
+      () => { stopTracking(); setStatus('Tracking error', ''); },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 6000 }
+    );
+  } else { stopTracking(); }
+}
+
+function stopTracking() {
+  tracking = false;
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  const btn = document.getElementById('trackBtn');
+  btn.classList.remove('track-on');
+  btn.textContent = '📍';
+  setStatus('Tracking stopped', '');
+}
+
+// ── CENTRE ON ME ─────────────────────────
+function centreOnMe() {
+  if (myLat && myLng) {
+    setMap(`https://maps.google.com/maps?q=${myLat},${myLng}&output=embed&z=${zoom}`);
+    setStatus('Centred on your location', 'on');
+  } else { useMyLocation(); }
+}
+
+// ════════════════════════════════════════
+//  GEOCODE — city name → lat/lng
+//  Uses Nominatim (OpenStreetMap) FREE API
+// ════════════════════════════════════════
+async function geocode(place) {
+  // If already lat,lng coordinates — use directly
+  const coordMatch = place.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+  if (coordMatch) return { lat: parseFloat(coordMatch[1]), lon: parseFloat(coordMatch[2]), name: place };
+
+  // Clean up input — remove extra spaces
+  const query = place.trim();
+
+  // Common Indian city aliases — map to standard names for better geocoding
+  const aliases = {
+    'pondy': 'Pondicherry', 'puducherry': 'Pondicherry',
+    'kovai': 'Coimbatore', 'cbe': 'Coimbatore',
+    'madras': 'Chennai', 'bombay': 'Mumbai',
+    'calcutta': 'Kolkata', 'bangalore': 'Bengaluru',
+    'trichy': 'Tiruchirappalli', 'tiruchy': 'Tiruchirappalli',
+    'tanjore': 'Thanjavur', 'mahabs': 'Mahabalipuram',
+    'ooty': 'Ooty, Tamil Nadu', 'munnar': 'Munnar, Kerala',
+  };
+  const key = query.toLowerCase().split(',')[0].trim();
+  const resolved = aliases[key] ? aliases[key] : query;
+
+  const headers = {
+    'Accept-Language': 'en',
+    'User-Agent': 'Travella/1.0 (travel-safety-app)'
+  };
+
+  // Try 1: with India suffix
+  try {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=in&q=' +
+                encodeURIComponent(resolved);
+    const res  = await fetch(url, { headers });
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), name: data[0].display_name };
+    }
+  } catch {}
+
+  // Try 2: global search without country restriction
+  try {
+    await new Promise(r => setTimeout(r, 500)); // Nominatim rate limit: 1 req/sec
+    const url2 = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+                 encodeURIComponent(resolved + ', India');
+    const res2  = await fetch(url2, { headers });
+    const data2 = await res2.json();
+    if (data2 && data2.length > 0) {
+      return { lat: parseFloat(data2[0].lat), lon: parseFloat(data2[0].lon), name: data2[0].display_name };
+    }
+  } catch {}
+
+  return null;
+}
+
+// ════════════════════════════════════════
+//  ROUTE — get REAL distance & duration
+//  Uses OSRM (Open Source Routing Machine) FREE
+// ════════════════════════════════════════
+async function getRealRoute(fromCoord, toCoord, profile) {
+  try {
+    // OSRM profile: driving, foot, bike
+    const osrmMode = profile === 'foot' ? 'foot' : profile === 'bike' ? 'bike' : 'driving';
+    // OSRM demo server — free, no API key needed
+    const url = `https://router.project-osrm.org/route/v1/${osrmMode}/${fromCoord.lon},${fromCoord.lat};${toCoord.lon},${toCoord.lat}?overview=false&steps=true`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+      const route    = data.routes[0];
+      const distM    = route.distance;   // metres
+      const durS     = route.duration;   // seconds
+      const steps    = route.legs[0].steps;
+
+      // Format distance
+      let distStr;
+      if (distM >= 1000) {
+        distStr = (distM / 1000).toFixed(1) + ' km';
+      } else {
+        distStr = Math.round(distM) + ' m';
+      }
+
+      // Format duration
+      let durStr;
+      const totalMins = Math.round(durS / 60);
+      if (totalMins < 60) {
+        durStr = totalMins + ' mins';
+      } else {
+        const hrs  = Math.floor(totalMins / 60);
+        const mins = totalMins % 60;
+        durStr = hrs + ' hr' + (hrs > 1 ? 's' : '') + (mins > 0 ? ' ' + mins + ' min' : '');
+      }
+
+      return { dist: distStr, duration: durStr, steps: steps };
+    }
+    return null;
+  } catch { return null; }
+}
+
+// Format step instruction from OSRM
+function formatStep(step) {
+  const maneuver = step.maneuver;
+  const type     = maneuver.type;
+  const modifier = maneuver.modifier || '';
+  const name     = step.name || 'unnamed road';
+  const distM    = step.distance;
+  const distStr  = distM >= 1000 ? (distM/1000).toFixed(1) + ' km' : Math.round(distM) + ' m';
+
+  let icon = '➡️';
+  let instruction = '';
+
+  if (type === 'depart')           { icon = '🟢'; instruction = 'Start on ' + name; }
+  else if (type === 'arrive')      { icon = '📍'; instruction = 'Arrive at your destination'; }
+  else if (type === 'turn') {
+    if (modifier.includes('left'))       { icon = '↰'; instruction = 'Turn left onto ' + name; }
+    else if (modifier.includes('right')) { icon = '↱'; instruction = 'Turn right onto ' + name; }
+    else                                  { icon = '⬆️'; instruction = 'Continue on ' + name; }
+  }
+  else if (type === 'new name')    { icon = '⬆️'; instruction = 'Continue onto ' + name; }
+  else if (type === 'merge')       { icon = '🔀'; instruction = 'Merge onto ' + name; }
+  else if (type === 'on ramp')     { icon = '⬆️'; instruction = 'Take ramp onto ' + name; }
+  else if (type === 'off ramp')    { icon = '↗️'; instruction = 'Take exit to ' + name; }
+  else if (type === 'fork') {
+    if (modifier.includes('left'))  { icon = '↰'; instruction = 'Keep left at fork onto ' + name; }
+    else                             { icon = '↱'; instruction = 'Keep right at fork onto ' + name; }
+  }
+  else if (type === 'roundabout')  { icon = '🔄'; instruction = 'Enter roundabout, take exit onto ' + name; }
+  else                             { icon = '➡️'; instruction = 'Continue on ' + name; }
+
+  return { icon, instruction, dist: distStr };
+}
+
+// ════════════════════════════════════════
+//  MAIN — GET DIRECTIONS
+// ════════════════════════════════════════
+async function getDirections() {
+  const from = document.getElementById('fromInput').value.trim();
+  const to   = document.getElementById('toInput').value.trim();
+  if (!from || !to) { alert('Please enter both From and To locations.'); return; }
+
+  // Show loading state
+  showLoading(true);
+  showStatLoading();
+
+  // Update map immediately
+  const mapSrc = `https://maps.google.com/maps?saddr=${encodeURIComponent(from)}&daddr=${encodeURIComponent(to)}&dirflg=${modeChar[mode]}&output=embed`;
+  setMap(mapSrc);
+  document.getElementById('mapFrame').onload = () => showLoading(false);
+  setTimeout(() => showLoading(false), 6000);
+  if (quickOpen) toggleQuick();
+
+  // Geocode both locations in parallel
+  setStatus('Geocoding locations…', 'on');
+  const [fromCoord, toCoord] = await Promise.all([geocode(from), geocode(to)]);
+
+  if (!fromCoord) {
+    showStatError('Could not find: ' + from);
+    setStatus('Location not found', '');
+    return;
+  }
+  if (!toCoord) {
+    showStatError('Could not find: ' + to);
+    setStatus('Location not found', '');
+    return;
+  }
+
+  setStatus('Calculating route…', 'on');
+
+  // Get real route from OSRM
+  const profile  = osrmProfile[mode];
+  const routeData = await getRealRoute(fromCoord, toCoord, profile);
+
+  if (routeData) {
+    // Show real distance and duration
+    document.getElementById('rDist').textContent = routeData.dist;
+    document.getElementById('rTime').textContent = routeData.duration;
+    document.getElementById('rMode').textContent = modeEmoji[mode];
+    document.getElementById('routeInfo').classList.add('show');
+    document.getElementById('routeInfo').style.background = 'rgba(13,79,92,0.06)';
+
+    setStatus('Route found!', 'on');
+
+    // Show real turn-by-turn steps
+    renderRealSteps(routeData.steps, from, to);
+  } else {
+    // Fallback — straight line distance estimate
+    const straightKm = haversine(fromCoord.lat, fromCoord.lon, toCoord.lat, toCoord.lon);
+    const roadKm     = (straightKm * 1.35).toFixed(1); // roads are ~35% longer than straight line
+    const speedKmh   = mode === 'walking' ? 5 : mode === 'bicycling' ? 15 : 50;
+    const totalMins  = Math.round((roadKm / speedKmh) * 60);
+    const hrs  = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    const durStr = hrs > 0 ? hrs + ' hr' + (hrs > 1 ? 's' : '') + (mins > 0 ? ' ' + mins + ' min' : '') : totalMins + ' mins';
+
+    document.getElementById('rDist').textContent = '~' + roadKm + ' km';
+    document.getElementById('rTime').textContent = '~' + durStr;
+    document.getElementById('rMode').textContent = modeEmoji[mode];
+    document.getElementById('routeInfo').classList.add('show');
+
+    setStatus('Estimated distance', 'on');
+    renderDirectionSteps(from, to);
+  }
+}
+
+// Haversine formula — straight-line distance between two coords in km
+function haversine(lat1, lon1, lat2, lon2) {
+  const R    = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a    = Math.sin(dLat/2) * Math.sin(dLat/2) +
+               Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+               Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Quick route shortcut
+function go(f, t) {
+  document.getElementById('fromInput').value = f;
+  document.getElementById('toInput').value   = t;
+  getDirections();
+}
+
+// ── STAT UI HELPERS ───────────────────────
+function showStatLoading() {
+  document.getElementById('rDist').innerHTML = '<span style="font-size:0.8rem;color:#8A8AAA">Calculating…</span>';
+  document.getElementById('rTime').innerHTML = '<span style="font-size:0.8rem;color:#8A8AAA">Calculating…</span>';
+  document.getElementById('rMode').textContent = modeEmoji[mode];
+  document.getElementById('routeInfo').classList.add('show');
+}
+
+function showStatError(msg) {
+  document.getElementById('rDist').innerHTML = '<span style="font-size:0.72rem;color:#E53935">Not found</span>';
+  document.getElementById('rTime').innerHTML = '<span style="font-size:0.72rem;color:#E53935">—</span>';
+  document.getElementById('routeInfo').classList.add('show');
+}
+
+// ── DIRECTION STEPS ───────────────────────
+// Real steps from OSRM
+function renderRealSteps(steps, from, to) {
+  if (!steps || steps.length === 0) { renderDirectionSteps(from, to); return; }
+
+  const fc   = from.split(',')[0].trim();
+  const tc   = to.split(',')[0].trim();
+  const body = document.getElementById('dirBody');
+
+  // Filter out steps with 0 distance (waypoint steps)
+  const filtered = steps.filter(s => s.distance > 5);
+
+  body.innerHTML = filtered.map(step => {
+    const f = formatStep(step);
+    return `<div class="dir-step">
+      <span style="font-size:1rem;flex-shrink:0;min-width:24px">${f.icon}</span>
+      <div style="flex:1">
+        <strong style="color:#1A1A2E;font-size:0.82rem">${f.instruction}</strong><br>
+        <span style="color:#8A8AAA;font-size:0.75rem">Continue for ${f.dist}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dirTitle').textContent = `${fc} → ${tc}`;
+  document.getElementById('dirPanel').classList.add('show');
+}
+
+// Fallback generic steps
+function renderDirectionSteps(from, to) {
+  const fc = from.split(',')[0].trim();
+  const tc = to.split(',')[0].trim();
+  const steps = [
+    { ic:'🟢', t:`Start from ${fc}`, d:'Head towards the main road' },
+    { ic:'⬆️', t:'Merge onto highway', d:`Follow signs towards ${tc}` },
+    { ic:'🛣️', t:'Continue on NH/SH', d:'Stay on the national highway' },
+    { ic:'⛽', t:'Rest stop recommended', d:'Midpoint — fuel up and take a break' },
+    { ic:'↗️', t:`Take exit to ${tc}`, d:'Follow city entry signs' },
+    { ic:'📍', t:`Arrive at ${tc}`, d:'You have reached your destination!' },
+  ];
+  const body = document.getElementById('dirBody');
+  body.innerHTML = steps.map(s =>
+    `<div class="dir-step">
+       <span style="font-size:1rem;flex-shrink:0">${s.ic}</span>
+       <div><strong style="color:#1A1A2E;font-size:0.82rem">${s.t}</strong><br>
+       <span style="color:#8A8AAA;font-size:0.76rem">${s.d}</span></div>
+     </div>`
+  ).join('');
+  document.getElementById('dirTitle').textContent = `${fc} → ${tc}`;
+  document.getElementById('dirPanel').classList.add('show');
+}
+
+// ── SWAP ──────────────────────────────────
+function swapLocs() {
+  const f = document.getElementById('fromInput');
+  const t = document.getElementById('toInput');
+  [f.value, t.value] = [t.value, f.value];
+  f.style.background = '#e3f2fd'; t.style.background = '#e3f2fd';
+  setTimeout(() => { f.style.background = ''; t.style.background = ''; }, 500);
+}
+
+// ── MODE ──────────────────────────────────
+function setMode(m, btn) {
+  mode = m;
+  document.querySelectorAll('.mpill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── ZOOM ──────────────────────────────────
+function zoomIn()  { zoom = Math.min(18, zoom + 1); applyZoom(); }
+function zoomOut() { zoom = Math.max(3,  zoom - 1); applyZoom(); }
+
+function applyZoom() {
+  const f   = document.getElementById('mapFrame');
+  const src = f.src;
+  if (myLat && myLng && !src.includes('saddr')) {
+    setMap(`https://maps.google.com/maps?q=${myLat},${myLng}&output=embed&z=${zoom}`);
+  } else {
+    const newSrc = src.replace(/&z=[0-9]+/, '');
+    setMap(newSrc + `&z=${zoom}`);
+  }
+}
+
+// ── QUICK ROUTES ──────────────────────────
+function toggleQuick() {
+  quickOpen = !quickOpen;
+  document.getElementById('quickRoutes').classList.toggle('show', quickOpen);
+}
+
+// ── HELPERS ───────────────────────────────
+function setMap(src)    { document.getElementById('mapFrame').src = src; }
+function showLoading(v) { document.getElementById('mapLoading').classList.toggle('show', v); }
+
+function setStatus(msg, state) {
+  document.getElementById('gpsText').textContent = msg;
+  const led = document.getElementById('gpsLed');
+  led.className = 'gps-led' + (state ? ' ' + state : '');
+}
+
+// Enter key support
+['fromInput','toInput'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') getDirections(); });
+});
+</script>
+</body>
+</html>
