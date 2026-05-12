@@ -6,6 +6,13 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = 'travella_secret_key_2024'
 
+conn = mysql.connector.connect(
+    host=os.getenv("MYSQLHOST"),
+    user=os.getenv("MYSQLUSER"),
+    password=os.getenv("MYSQLPASSWORD"),
+    database=os.getenv("MYSQLDATABASE"),
+    port=os.getenv("MYSQLPORT")
+)
 # ─── DB CONFIG ────────────────────────────────
 DB_CONFIG = {
     'host': 'localhost',
